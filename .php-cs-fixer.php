@@ -33,4 +33,6 @@ return $config
                 'vendor',
             ])
             ->in(__DIR__)
+            ->name('.*\.php')
+            ->notName('*.blade.php')
     );
