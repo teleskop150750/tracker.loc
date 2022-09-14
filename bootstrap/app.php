@@ -25,7 +25,14 @@ $app = new App\Application(
     dirname(__DIR__)
 );
 
-// $app->withFacades();
+$app->withFacades(
+    true,
+    [
+        LaravelDoctrine\ORM\Facades\EntityManager::class => 'EntityManager',
+        LaravelDoctrine\ORM\Facades\Registry::class => 'Registry',
+        LaravelDoctrine\ORM\Facades\Doctrine::class => 'Doctrine',
+    ]
+);
 
 // $app->withEloquent();
 
@@ -104,6 +111,7 @@ $app->middleware([
 // $app->register(App\Providers\EventServiceProvider::class);
 
 $app->register(Fruitcake\Cors\CorsServiceProvider::class);
+$app->register(LaravelDoctrine\ORM\DoctrineServiceProvider::class);
 
 /*
 |--------------------------------------------------------------------------
@@ -116,7 +124,7 @@ $app->register(Fruitcake\Cors\CorsServiceProvider::class);
 |
 */
 
-$app->router->group(['path' => '/api/v1'], function ($router) {
+$app->router->group(['path' => '/api/v1'], function ($router): void {
     require __DIR__.'/../routes/web.php';
 });
 
