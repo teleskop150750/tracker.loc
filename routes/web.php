@@ -15,6 +15,9 @@ declare(strict_types=1);
 |
 */
 
-$router->get('/', function () use ($router) {
-    return $router->app->version();
-});
+
+$router->get('test', ['uses' => [\App\Http\Controllers\ExampleController::class, 'index']]);
+
+//$router->get('test', function () use ($router) {
+//    return $router->app->version();
+//});

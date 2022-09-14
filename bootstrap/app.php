@@ -21,7 +21,7 @@ date_default_timezone_set(env('APP_TIMEZONE', 'UTC'));
 |
 */
 
-$app = new Laravel\Lumen\Application(
+$app = new App\Application(
     dirname(__DIR__)
 );
 
@@ -116,9 +116,7 @@ $app->register(Fruitcake\Cors\CorsServiceProvider::class);
 |
 */
 
-$app->router->group([
-    'namespace' => 'App\Http\Controllers',
-], function ($router): void {
+$app->router->group(['path' => '/api/v1'], function ($router) {
     require __DIR__.'/../routes/web.php';
 });
 
