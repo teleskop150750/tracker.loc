@@ -28,7 +28,7 @@ class Application extends \Laravel\Lumen\Application
     /**
      * Dispatch the incoming request.
      *
-     * @param  null|\Symfony\Component\HttpFoundation\Request  $request
+     * @param null|\Symfony\Component\HttpFoundation\Request $request
      */
     public function dispatch($request = null)
     {
@@ -56,7 +56,7 @@ class Application extends \Laravel\Lumen\Application
     /**
      * Parse the incoming request and return the method and path info.
      *
-     * @param  null|\Symfony\Component\HttpFoundation\Request  $request
+     * @param null|\Symfony\Component\HttpFoundation\Request $request
      *
      * @return string[]
      */
@@ -77,7 +77,7 @@ class Application extends \Laravel\Lumen\Application
     /**
      * Call a controller based route.
      *
-     * @param  array  $routeInfo
+     * @param array $routeInfo
      */
     protected function callControllerAction($routeInfo)
     {

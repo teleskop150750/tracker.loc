@@ -26,7 +26,7 @@ return [
             'dev' => env('APP_DEBUG'),
             'meta' => env('DOCTRINE_METADATA', 'attributes'),
             'connection' => env('DB_CONNECTION', 'mysql'),
-            'namespaces' => [   
+            'namespaces' => [
                 'App',
             ],
             'paths' => [

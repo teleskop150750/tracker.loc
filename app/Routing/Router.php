@@ -35,6 +35,7 @@ class Router extends \Laravel\Lumen\Routing\Router
      * Merge the given group attributes.
      *
      * @param mixed $new
+     * @param mixed $old
      */
     public function mergeGroup($new, $old): array
     {
@@ -121,6 +122,8 @@ class Router extends \Laravel\Lumen\Routing\Router
 
     /**
      * Parse the action into an array format.
+     *
+     * @param mixed $action
      */
     protected function parseAction($action): array|Closure
     {
@@ -151,6 +154,9 @@ class Router extends \Laravel\Lumen\Routing\Router
 
     /**
      * Merge the middleware group into the action.
+     *
+     * @param mixed      $action
+     * @param null|mixed $middleware
      */
     protected function mergeMiddlewareGroup($action, $middleware = null): array
     {
@@ -167,6 +173,9 @@ class Router extends \Laravel\Lumen\Routing\Router
 
     /**
      * Merge the as group into the action.
+     *
+     * @param mixed      $action
+     * @param null|mixed $as
      */
     protected function mergeAsGroup($action, $as = null): array
     {
