@@ -6,7 +6,6 @@ namespace App\Routing;
 
 use Closure;
 use Illuminate\Support\Arr;
-use Laravel\Lumen\Application;
 
 class Router extends \Laravel\Lumen\Routing\Router
 {
