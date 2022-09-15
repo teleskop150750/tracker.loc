@@ -1,11 +1,16 @@
 {
     "name": "laravel/lumen",
     "description": "The Laravel Lumen Framework.",
-    "keywords": ["framework", "laravel", "lumen"],
+    "keywords": [
+        "framework",
+        "laravel",
+        "lumen"
+    ],
     "license": "MIT",
     "type": "project",
     "require": {
         "php": "^8.0",
+        "beberlei/assert": "^3.3",
         "fruitcake/laravel-cors": "^3.0",
         "laravel-doctrine/orm": "^1.8",
         "laravel/lumen-framework": "^9.0"
@@ -30,6 +35,12 @@
         }
     },
     "scripts": {
+        "schema:update": "php artisan doctrine:schema:update",
+        "schema:validate": "php artisan doctrine:schema:validate",
+        "doctrine:info": "php artisan doctrine:info",
+        "db:wipe": "php artisan db:wipe",
+        "migrate": "php artisan migrate",
+        "refresh": "php artisan migrate:refresh",
         "cs-fix": "vendor/bin/php-cs-fixer fix",
         "phpstan": "vendor/bin/phpstan analyse",
         "post-root-package-install": [
