@@ -30,7 +30,7 @@ return [
                 'App',
             ],
             'paths' => [
-                base_path('app'),
+                base_path('app/Modules'),
             ],
             'repository' => Doctrine\ORM\EntityRepository::class,
             'proxies' => [
@@ -83,7 +83,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'custom_types' => [
-        'json' => LaravelDoctrine\ORM\Types\Json::class,
+        'user_id' => \App\Modules\User\Infrastructure\Doctrine\Types\UserIdType::class,
     ],
     /*
     |--------------------------------------------------------------------------
