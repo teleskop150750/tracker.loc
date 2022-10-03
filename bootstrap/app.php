@@ -2,6 +2,17 @@
 
 declare(strict_types=1);
 
+use App\Exceptions\Handler;
+use Fruitcake\Cors\CorsServiceProvider;
+use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Contracts\Debug\ExceptionHandler;
+use LaravelDoctrine\ORM\DoctrineServiceProvider;
+use Modules\Auth\User\Infrastructure\Lumen\UserServiceProvider;
+use Modules\Shared\Infrastructure\Lumen\SharedServiceProvider;
+use Modules\Tracker\Folder\Infrastructure\Lumen\FolderServiceProvider;
+use Modules\Tracker\Shared\Infrastructure\Lumen\LumenServiceProvider;
+use Modules\Tracker\Task\Infrastructure\Lumen\TaskServiceProvider;
+
 require_once __DIR__.'/../vendor/autoload.php';
 
 (new Laravel\Lumen\Bootstrap\LoadEnvironmentVariables(
@@ -48,13 +59,13 @@ $app->withFacades(
 */
 
 $app->singleton(
-    Illuminate\Contracts\Debug\ExceptionHandler::class,
-    App\Exceptions\Handler::class
+    ExceptionHandler::class,
+    Handler::class
 );
 
 $app->singleton(
-    Illuminate\Contracts\Console\Kernel::class,
-    App\Console\Kernel::class
+    Kernel::class,
+    \App\Console\Kernel::class
 );
 
 /*
@@ -69,8 +80,8 @@ $app->singleton(
 */
 
 $app->configure('app');
-
 $app->configure('cors');
+$app->configure('hashing');
 
 /*
 |--------------------------------------------------------------------------
@@ -106,12 +117,17 @@ $app->middleware([
 |
 */
 
-// $app->register(App\Providers\AppServiceProvider::class);
+// $app->register(\App\Providers\AppServiceProvider::class);
 // $app->register(App\Providers\AuthServiceProvider::class);
 // $app->register(App\Providers\EventServiceProvider::class);
 
-$app->register(Fruitcake\Cors\CorsServiceProvider::class);
-$app->register(LaravelDoctrine\ORM\DoctrineServiceProvider::class);
+$app->register(SharedServiceProvider::class);
+$app->register(LumenServiceProvider::class);
+$app->register(UserServiceProvider::class);
+$app->register(FolderServiceProvider::class);
+$app->register(TaskServiceProvider::class);
+$app->register(CorsServiceProvider::class);
+$app->register(DoctrineServiceProvider::class);
 
 /*
 |--------------------------------------------------------------------------

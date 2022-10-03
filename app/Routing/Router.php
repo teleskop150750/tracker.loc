@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Routing;
 
+use App\Support\Arr;
 use Closure;
-use Illuminate\Support\Arr;
 
 class Router extends \Laravel\Lumen\Routing\Router
 {

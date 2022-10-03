@@ -9,21 +9,27 @@
     "license": "MIT",
     "type": "project",
     "require": {
-        "php": "^8.0",
-        "beberlei/assert": "^3.3",
+        "php": "^8.1",
         "fruitcake/laravel-cors": "^3.0",
+        "gedmo/doctrine-extensions": "^v3.9.0",
+        "lambdish/phunctional": "^2.1",
+        "laravel-doctrine/extensions": "^1.5",
         "laravel-doctrine/orm": "^1.8",
-        "laravel/lumen-framework": "^9.0"
+        "laravel/lumen-framework": "^v9.1",
+        "symfony/messenger": "^6.1",
+        "webmozart/assert": "^1.11"
     },
     "require-dev": {
         "fakerphp/faker": "^1.9.1",
         "friendsofphp/php-cs-fixer": "^3.11",
         "mockery/mockery": "^1.4.4",
         "phpstan/phpstan": "^1.8",
-        "phpunit/phpunit": "^9.5.10"
+        "phpunit/phpunit": "^9.5.10",
+        "roave/security-advisories": "dev-latest"
     },
     "autoload": {
         "psr-4": {
+            "Modules\\": "Modules/",
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
@@ -35,13 +41,15 @@
         }
     },
     "scripts": {
-        "schema:update": "php artisan doctrine:schema:update",
-        "schema:validate": "php artisan doctrine:schema:validate",
+        "doctrine:clear": "php artisan doctrine:clear:metadata:cache",
+        "doctrine:update": "php artisan doctrine:schema:update --force",
+        "doctrine:validate": "php artisan doctrine:schema:validate",
         "doctrine:info": "php artisan doctrine:info",
         "db:wipe": "php artisan db:wipe",
         "migrate": "php artisan migrate",
         "refresh": "php artisan migrate:refresh",
-        "cs-fix": "vendor/bin/php-cs-fixer fix",
+        "clear": "php artisan cache:clear",
+        "cs:fix": "vendor/bin/php-cs-fixer fix",
         "phpstan": "vendor/bin/phpstan analyse",
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""

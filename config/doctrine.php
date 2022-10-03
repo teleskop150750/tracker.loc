@@ -27,16 +27,16 @@ return [
             'meta' => env('DOCTRINE_METADATA', 'attributes'),
             'connection' => env('DB_CONNECTION', 'mysql'),
             'namespaces' => [
-                'App',
+                'Modules',
             ],
             'paths' => [
-                base_path('app/Modules'),
+                base_path('Modules'),
             ],
             'repository' => Doctrine\ORM\EntityRepository::class,
             'proxies' => [
                 'namespace' => false,
                 'path' => storage_path('proxies'),
-                'auto_generate' => env('DOCTRINE_PROXY_AUTOGENERATE', false),
+                'auto_generate' => env('DOCTRINE_PROXY_AUTOGENERATE', true),
             ],
             /*
             |--------------------------------------------------------------------------
@@ -67,11 +67,11 @@ return [
     */
     'extensions' => [
         // LaravelDoctrine\ORM\Extensions\TablePrefix\TablePrefixExtension::class,
-        // LaravelDoctrine\Extensions\Timestamps\TimestampableExtension::class,
+        \LaravelDoctrine\Extensions\Timestamps\TimestampableExtension::class,
         // LaravelDoctrine\Extensions\SoftDeletes\SoftDeleteableExtension::class,
         // LaravelDoctrine\Extensions\Sluggable\SluggableExtension::class,
         // LaravelDoctrine\Extensions\Sortable\SortableExtension::class,
-        // LaravelDoctrine\Extensions\Tree\TreeExtension::class,
+        \LaravelDoctrine\Extensions\Tree\TreeExtension::class,
         // LaravelDoctrine\Extensions\Loggable\LoggableExtension::class,
         // LaravelDoctrine\Extensions\Blameable\BlameableExtension::class,
         // LaravelDoctrine\Extensions\IpTraceable\IpTraceableExtension::class,
@@ -83,7 +83,11 @@ return [
     |--------------------------------------------------------------------------
     */
     'custom_types' => [
-        'user_id' => \App\Modules\User\Infrastructure\Doctrine\Types\UserIdType::class,
+        'user_uuid' => \Modules\Auth\User\Infrastructure\Doctrine\Types\UserUuidType::class,
+        'task_uuid' => \Modules\Tracker\Task\Infrastructure\Doctrine\Types\TaskUuidType::class,
+        'task_relationship_uuid' => \Modules\Tracker\Task\Infrastructure\Doctrine\Types\TaskRelationshipUuidType::class,
+        //        'folder_uuid' => \Modules\Tracker\Folder\Infrastructure\Doctrine\Types\FolderUuidType::class,
+        //        'folder_access_uuid' => \Modules\Tracker\Folder\Infrastructure\Doctrine\Types\FolderAccessUuidType::class,
     ],
     /*
     |--------------------------------------------------------------------------

@@ -1,5 +1,8 @@
 parameters:
-	level: 6
-	paths:
-		- app
-		- tests
+    level: 6
+    paths:
+        - app
+        - tests
+    ignoreErrors:
+        # new static() is a best practice in Drupal, so we cannot fix that.
+        - "#^Unsafe usage of new static#"
