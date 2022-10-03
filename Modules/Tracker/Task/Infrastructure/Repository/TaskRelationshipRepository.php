@@ -68,7 +68,8 @@ class TaskRelationshipRepository extends AbstractDoctrineRepository implements T
             ->andWhere('r.status.value IN (:statuses)')
             ->setParameter('statuses', [TaskStatus::NEW, TaskStatus::IN_WORK, TaskStatus::WAITING])
             ->andWhere('r.endDate.value < :today')
-            ->setParameter(':today', $toDay);
+            ->setParameter(':today', $toDay)
+            ->orderBy('r.endDate.value', 'ASC');
 
         return $qb->getQuery()->getResult();
     }
