@@ -1,24 +1,95 @@
-# Lumen PHP Framework
+# Tracker
 
-[![Build Status](https://travis-ci.org/laravel/lumen-framework.svg)](https://travis-ci.org/laravel/lumen-framework)
-[![Total Downloads](https://img.shields.io/packagist/dt/laravel/lumen-framework)](https://packagist.org/packages/laravel/lumen-framework)
-[![Latest Stable Version](https://img.shields.io/packagist/v/laravel/lumen-framework)](https://packagist.org/packages/laravel/lumen-framework)
-[![License](https://img.shields.io/packagist/l/laravel/lumen)](https://packagist.org/packages/laravel/lumen-framework)
+## Технологии
 
-Laravel Lumen is a stunningly fast PHP micro-framework for building web applications with expressive, elegant syntax. We believe development must be an enjoyable, creative experience to be truly fulfilling. Lumen attempts to take the pain out of development by easing common tasks used in the majority of web projects, such as routing, database abstraction, queueing, and caching.
+- [Lumen](https://lumen.laravel.com/docs)
+- [Doctrine](https://www.doctrine-project.org/)
+- [DDD](https://khalilstemmler.com/articles/domain-driven-design-intro/)
 
-## Official Documentation
+## Файловая структура
+ 
+ - [Shared](#Shared)
+ - [Modules](#Modules)
 
-Documentation for the framework can be found on the [Lumen website](https://lumen.laravel.com/docs).
+## Shared
 
-## Contributing
+Файлы с логикой, которая является общей для всех модулей или нескольких модулей, должны быть сохранены в Shared папке
 
-Thank you for considering contributing to Lumen! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Modules
 
-## Security Vulnerabilities
+Содержит модули приложения
 
-If you discover a security vulnerability within Lumen, please send an e-mail to Taylor Otwell at taylor@laravel.com. All security vulnerabilities will be promptly addressed.
+## Структура модуля
 
-## License
+- Domain - [Domain Layer](#Domain Layer)
+- Application - [Domain Layer](#Application Layer)
+- Infrastructure - [Domain Layer](#Infrastructure Layer)
 
-The Lumen framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Domain Layer
+Это ядро приложения. Это уровень, на который включены все бизнес-правила, относящиеся к решаемой проблеме. В этом слое; сущности, объекты значений, агрегаты, фабрики и интерфейсы. Этот слой должен быть максимально удален от зависимостей.
+
+### Entities
+
+Объекты предметной области, которые мы хотим однозначно идентифицировать.
+
+Такие вещи, как: ```User```, ```Folder```, и т.д.
+
+### Value Objects
+
+Объекты-значения не имеют идентичности. Они являются атрибутами Сущностей.
+
+### Domain Services
+
+Здесь мы находим логику предметной области, которая концептуально не принадлежит ни одному объекту.
+
+### Repository
+
+Мы используем репозитории для извлечения объектов домена из технологий сохранения. 
+
+## Application Layer
+
+Это уровень, на котором обрабатываются потоки бизнес-процессов. Возможности приложения можно наблюдать на этом уровне. Объекты домена создаются и подлежат обновлению здесь. В зависимости от сценариев использования здесь также решаются такие темы, как управление транзакциями.
+В этом слое хранятся UseCases
+
+### Command
+
+Содержит команды для работы с доменом
+
+### Query
+
+Запросы для извлечения данных
+
+## Infrastructure Layer
+
+Здесь у нас основная реализация, основное наполнение библиотек и различные функциональные возможности для работы с внешней инфраструктурой. В том числе, и реализация интерфейса, который используется на аппликационном уровне.
+
+### Api 
+
+Содержит контроллеры.
+
+### Repository
+
+Реализация репозиториев
+
+### Lumen
+
+Реализация ServiceProvider и все что относится к ```Lumen```.
+В ServiceProvider настраивается Service Container: связь Интерфейсов с реализации, команд с обработчиками  
+
+### Doctrine
+
+Реализация пользовательских типов и все что относится к ```Doctrine```.
+
+## ApiController 
+
+Базовый ```ApiController``` имеет следующие методы
+ 
+- ```validate```
+- ```dispatch```
+- ```ask```
+
+```validate``` вызывает [валидацию](https://laravel.com/docs/9.x/validation#main-content) Laravel
+
+```dispatch``` Принимает экземпляр ```CommandInterface```  и выполняет связанный с ним обработчик
+
+```ask``` Принимает экземпляр ```QueryInterface```  и выполняет связанный с ним обработчик
