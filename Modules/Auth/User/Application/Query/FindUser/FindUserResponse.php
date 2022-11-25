@@ -18,6 +18,7 @@ class FindUserResponse implements QueryResponseInterface
         private readonly ?string $department,
         private readonly ?string $post,
         private readonly ?string $avatar,
+        private readonly bool $verify,
     ) {
     }
 
@@ -32,6 +33,7 @@ class FindUserResponse implements QueryResponseInterface
             $user->getDepartment()->toNative(),
             $user->getPost()->toNative(),
             $user->getAvatar()->toNative(),
+            (bool) $user->getEmailVerifiedAt()->getValue(),
         );
     }
 
@@ -49,6 +51,7 @@ class FindUserResponse implements QueryResponseInterface
             'department' => $this->department,
             'post' => $this->post,
             'avatar' => $this->avatar,
+            'verify' => $this->verify,
         ];
     }
 }

@@ -15,65 +15,55 @@ declare(strict_types=1);
 |
 */
 
-use App\Http\Controllers\ExampleController;
-use App\Routing\Router;
-use Modules\Auth\User\Infrastructure\Api\GetAllUsersController;
-use Modules\Auth\User\Infrastructure\Api\LoginUserController;
-use Modules\Auth\User\Infrastructure\Api\RegisterUserController;
-use Modules\Tracker\Folder\Infrastructure\Api\CreateFolderController;
-use Modules\Tracker\Folder\Infrastructure\Api\DeleteFolderController;
-use Modules\Tracker\Folder\Infrastructure\Api\GetAvailableFoldersForMeController;
-use Modules\Tracker\Folder\Infrastructure\Api\GetFolderController;
-use Modules\Tracker\Folder\Infrastructure\Api\GetSharedFoldersForMeController;
-use Modules\Tracker\Folder\Infrastructure\Api\GetWorkspaceFoldersForMeController;
-use Modules\Tracker\Folder\Infrastructure\Api\UpdateFolderController;
-use Modules\Tracker\Shared\Infrastructure\Api\GetArchiveForMeController;
-use Modules\Tracker\Shared\Infrastructure\Api\SearchController;
-use Modules\Tracker\Task\Infrastructure\Api\CreateTaskController;
-use Modules\Tracker\Task\Infrastructure\Api\DeleteTaskController;
-use Modules\Tracker\Task\Infrastructure\Api\ExtendTasksController;
-use Modules\Tracker\Task\Infrastructure\Api\GetAssignedTasksForMeController;
-use Modules\Tracker\Task\Infrastructure\Api\GetAvailableTasksForMeController;
-use Modules\Tracker\Task\Infrastructure\Api\GetGanttAssignedTasksForMeController;
-use Modules\Tracker\Task\Infrastructure\Api\GetGanttTasksCreatedByMeController;
-use Modules\Tracker\Task\Infrastructure\Api\GetRelationshipsForTasksController;
-use Modules\Tracker\Task\Infrastructure\Api\GetSharedGanttTasksForMeController;
-use Modules\Tracker\Task\Infrastructure\Api\GetTaskController;
-use Modules\Tracker\Task\Infrastructure\Api\GetTasksCreatedByMeController;
-use Modules\Tracker\Task\Infrastructure\Api\GetWorkspaceGanttTasksForMeController;
-use Modules\Tracker\Task\Infrastructure\Api\UpdateTaskController;
+use Laravel\Lumen\Routing\Router;
 
-$router->get('test', ['uses' => [ExampleController::class, 'test']]);
-$router->get('main', ['uses' => [ExtendTasksController::class, '__invoke']]);
+$router->get('test', 'App\Http\Controllers\ExampleController@test');
+$router->get('main', 'App\Http\Controllers\ExampleController@userToArr');
 
-$router->post('register', ['uses' => [RegisterUserController::class, '__invoke']]);
-$router->post('login', ['uses' => [LoginUserController::class, '__invoke']]);
+$router->post('register', 'Modules\Auth\User\Infrastructure\Api\RegisterUserController@__invoke');
+$router->post('login', 'Modules\Auth\User\Infrastructure\Api\LoginUserController@__invoke');
+$router->post('update-me', 'Modules\Auth\User\Infrastructure\Api\UpdateUserController@updateInfo');
+$router->post('change-password', 'Modules\Auth\User\Infrastructure\Api\UpdateUserController@updatePassword');
+$router->post('email/verification-notification', [
+    'as' => 'verification.send',
+    'uses' => 'Modules\Auth\User\Infrastructure\Api\RegisterUserController@resendVerificationNotification',
+]);
+$router->post('email/verify/{id}/{hash}', [
+    'middleware' => ['signed'],
+    'as' => 'verification.verify',
+    'uses' => 'Modules\Auth\User\Infrastructure\Api\RegisterUserController@verifyEmail',
+]);
+$router->post('forgot-password', ['uses' => 'Modules\Auth\User\Infrastructure\Api\RegisterUserController@forgotPassword']);
+$router->post('reset-password/{token}', ['uses' => 'Modules\Auth\User\Infrastructure\Api\RegisterUserController@resetPassword']);
 
-$router->get('get-users', ['uses' => [GetAllUsersController::class, '__invoke']]);
+$router->get('users', 'Modules\Auth\User\Infrastructure\Api\GetAllUsersController@__invoke');
 
-$router->post('create-folder', ['uses' => [CreateFolderController::class, '__invoke']]);
-$router->post('update-folder', ['uses' => [UpdateFolderController::class, '__invoke']]);
-$router->post('delete-folder', ['uses' => [DeleteFolderController::class, '__invoke']]);
-$router->get('get-folder-info', ['uses' => [GetFolderController::class, '__invoke']]);
-$router->get('get-available-folders-for-me', ['uses' => [GetAvailableFoldersForMeController::class, '__invoke']]);
-$router->get('get-workspace-folders-for-me', ['uses' => [GetWorkspaceFoldersForMeController::class, '__invoke']]);
-$router->get('get-shared-folders-for-me', ['uses' => [GetSharedFoldersForMeController::class, '__invoke']]);
+$router->post('create-folder', 'Modules\Tracker\Folder\Infrastructure\Api\CreateFolderController@__invoke');
+$router->post('update-folder', 'Modules\Tracker\Folder\Infrastructure\Api\UpdateFolderController@__invoke');
+$router->post('delete-folder', 'Modules\Tracker\Folder\Infrastructure\Api\DeleteFolderController@__invoke');
+$router->get('folder-info', 'Modules\Tracker\Folder\Infrastructure\Api\GetFolderController@__invoke');
+$router->get('available-folders-for-me', 'Modules\Tracker\Folder\Infrastructure\Api\GetAvailableFoldersForMeController@__invoke');
+$router->get('workspace-folders-for-me', 'Modules\Tracker\Folder\Infrastructure\Api\GetWorkspaceFoldersForMeController@__invoke');
+$router->get('shared-folders-for-me', 'Modules\Tracker\Folder\Infrastructure\Api\GetSharedFoldersForMeController@__invoke');
 
-$router->post('create-task', ['uses' => [CreateTaskController::class, '__invoke']]);
-$router->post('update-task', ['uses' => [UpdateTaskController::class, '__invoke']]);
-$router->post('delete-task', ['uses' => [DeleteTaskController::class, '__invoke']]);
-$router->get('get-available-tasks-for-me', ['uses' => [GetAvailableTasksForMeController::class, '__invoke']]);
-$router->get('get-task-info', ['uses' => [GetTaskController::class, '__invoke']]);
-$router->get('get-tasks-created-by-me', ['uses' => [GetTasksCreatedByMeController::class, '__invoke']]);
-$router->get('get-assigned-tasks-for-me', ['uses' => [GetAssignedTasksForMeController::class, '__invoke']]);
+$router->post('create-task', 'Modules\Tracker\Task\Infrastructure\Api\CreateTaskController@__invoke');
+$router->post('update-task', 'Modules\Tracker\Task\Infrastructure\Api\UpdateTaskController@__invoke');
+$router->post('delete-task/{id}', 'Modules\Tracker\Task\Infrastructure\Api\DeleteTaskController@__invoke');
+$router->get('available-tasks-for-me', 'Modules\Tracker\Task\Infrastructure\Api\GetAvailableTasksForMeController@__invoke');
+$router->get('task-info/{id}', 'Modules\Tracker\Task\Infrastructure\Api\GetTaskController@__invoke');
+$router->get('tasks-created-by-me', 'Modules\Tracker\Task\Infrastructure\Api\GetTasksCreatedByMeController@__invoke');
+$router->get('assigned-tasks-for-me', 'Modules\Tracker\Task\Infrastructure\Api\GetAssignedTasksForMeController@__invoke');
+$router->post('tasks/{taskId}/add-file', 'Modules\Tracker\Task\Infrastructure\Api\TaskFileController@add');
+$router->get('task-file/{fileId}', 'Modules\Tracker\Task\Infrastructure\Api\TaskFileController@download');
+$router->post('remove-task-file/{fileId}', 'Modules\Tracker\Task\Infrastructure\Api\TaskFileController@remove');
 
-$router->get('get-gantt-assigned-tasks-for-me', ['uses' => [GetGanttAssignedTasksForMeController::class, '__invoke']]);
-$router->get('get-gantt-tasks-created-by-me', ['uses' => [GetGanttTasksCreatedByMeController::class, '__invoke']]);
-$router->get('get-workspace-gantt-tasks-for-me', ['uses' => [GetWorkspaceGanttTasksForMeController::class, '__invoke']]);
-$router->get('get-shared-gantt-tasks-for-me', ['uses' => [GetSharedGanttTasksForMeController::class, '__invoke']]);
+$router->get('gantt-assigned-tasks-for-me', 'Modules\Tracker\Task\Infrastructure\Api\GetGanttAssignedTasksForMeController@__invoke');
+$router->get('gantt-tasks-created-by-me', 'Modules\Tracker\Task\Infrastructure\Api\GetGanttTasksCreatedByMeController@__invoke');
+$router->get('workspace-gantt-tasks-for-me', 'Modules\Tracker\Task\Infrastructure\Api\GetWorkspaceGanttTasksForMeController@__invoke');
+$router->get('shared-gantt-tasks-for-me', 'Modules\Tracker\Task\Infrastructure\Api\GetSharedGanttTasksForMeController@__invoke');
 
-$router->get('get-tasks-relationships-for-tasks', ['uses' => [GetRelationshipsForTasksController::class, '__invoke']]);
+$router->get('tasks-relationships-for-tasks', 'Modules\Tracker\Task\Infrastructure\Api\GetRelationshipsForTasksController@__invoke');
 
-$router->get('get-archive-for-me', ['uses' => [GetArchiveForMeController::class, '__invoke']]);
+$router->get('archive-for-me', 'Modules\Tracker\Shared\Infrastructure\Api\GetArchiveForMeController@__invoke');
 
-$router->get('search', ['uses' => [SearchController::class, '__invoke']]);
+$router->get('search', 'Modules\Tracker\Shared\Infrastructure\Api\SearchController@__invoke');

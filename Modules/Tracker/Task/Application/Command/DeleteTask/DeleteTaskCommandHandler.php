@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Modules\Tracker\Task\Application\Command\DeleteTask;
 
-use InvalidArgumentException;
+use Illuminate\Support\Facades\Storage;
 use Modules\Shared\Application\Command\CommandHandlerInterface;
-use Modules\Tracker\Folder\Domain\Repository\FolderNotFoundException;
 use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskUuid;
+use Modules\Tracker\Task\Domain\Repository\Exceptions\TaskNotFoundException;
 use Modules\Tracker\Task\Domain\Repository\TaskRepositoryInterface;
 
 class DeleteTaskCommandHandler implements CommandHandlerInterface
@@ -20,10 +20,15 @@ class DeleteTaskCommandHandler implements CommandHandlerInterface
     public function __invoke(DeleteTaskCommand $command): void
     {
         try {
-            $folder = $this->taskRepository->find(TaskUuid::fromNative($command->id));
-            $this->taskRepository->remove($folder);
-        } catch (FolderNotFoundException $exception) {
-            throw new InvalidArgumentException('Задача не найдена');
+            $task = $this->taskRepository->find(TaskUuid::fromNative($command->id));
+
+            foreach ($task->getFiles() as $file) {
+                Storage::delete($file->getPath()->toNative());
+            }
+
+            $this->taskRepository->remove($task);
+        } catch (TaskNotFoundException $exception) {
+            throw new \InvalidArgumentException('Задача не найдена');
         }
     }
 }

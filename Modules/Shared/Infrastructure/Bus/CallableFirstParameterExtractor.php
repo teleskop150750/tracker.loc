@@ -7,10 +7,6 @@ namespace Modules\Shared\Infrastructure\Bus;
 use function Lambdish\Phunctional\map;
 use function Lambdish\Phunctional\reindex;
 
-use ReflectionClass;
-use ReflectionException;
-use ReflectionMethod;
-
 final class CallableFirstParameterExtractor
 {
     /**
@@ -27,11 +23,11 @@ final class CallableFirstParameterExtractor
     }
 
     /**
-     * @throws ReflectionException
+     * @throws \ReflectionException
      */
     public function extract(mixed $class): ?string
     {
-        $reflector = new ReflectionClass($class);
+        $reflector = new \ReflectionClass($class);
         $method = $reflector->getMethod('__invoke');
 
         if ($this->hasOnlyOneParameter($method)) {
@@ -51,12 +47,12 @@ final class CallableFirstParameterExtractor
         return static fn ($value) => [$value];
     }
 
-    private function firstParameterClassFrom(ReflectionMethod $method): ?string
+    private function firstParameterClassFrom(\ReflectionMethod $method): ?string
     {
         return $method->getParameters()[0]?->getType()?->getName();
     }
 
-    private function hasOnlyOneParameter(ReflectionMethod $method): bool
+    private function hasOnlyOneParameter(\ReflectionMethod $method): bool
     {
         return 1 === $method->getNumberOfParameters();
     }

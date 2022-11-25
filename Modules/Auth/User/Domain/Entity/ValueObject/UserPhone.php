@@ -13,4 +13,9 @@ class UserPhone extends NullableStringLiteral
 {
     #[Column(name: 'phone', type: 'string', nullable: true)]
     protected null|string $value;
+
+    public static function fromNative(string $value = null): self
+    {
+        return new self($value);
+    }
 }

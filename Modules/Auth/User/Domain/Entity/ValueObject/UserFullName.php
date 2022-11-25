@@ -35,7 +35,7 @@ class UserFullName implements ValueObjectInterface
 
     public function getFullName(): string
     {
-        return $this->getLastName().' FullName.php'.$this->getFirstName().' '.$this->getPatronymic();
+        return $this->getLastName().' '.$this->getFirstName().' '.$this->getPatronymic();
     }
 
     public function getFirstName(): string

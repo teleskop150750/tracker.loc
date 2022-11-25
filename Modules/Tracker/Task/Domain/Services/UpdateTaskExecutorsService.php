@@ -4,29 +4,28 @@ declare(strict_types=1);
 
 namespace Modules\Tracker\Task\Domain\Services;
 
+use Illuminate\Support\Facades\DB;
 use Modules\Auth\User\Domain\Entity\User;
 use Modules\Tracker\Task\Domain\Entity\Task\Task;
 
 class UpdateTaskExecutorsService
 {
-    private Task $task;
-
-    public function __construct(Task $task)
+    public function __construct(
+        private readonly Task $task,
+        private readonly TaskNotification $emailVerification
+    )
     {
-        $this->task = $task;
     }
 
-    public static function make(Task $task): static
+    public static function make(Task $task, TaskNotification $emailVerification): static
     {
-        return new static($task);
+        return new static ($task, $emailVerification);
     }
 
     /**
      * @param User[] $users
-     *
-     * @throws \Exception
      */
-    public function updateExecutors(array $users): void
+    public function updateExecutors(array $users = []): void
     {
         $currentExecutors = $this->task->getExecutors();
 
@@ -35,6 +34,7 @@ class UpdateTaskExecutorsService
         }
 
         foreach ($users as $user) {
+            $this->emailVerification->sendNotificationOfTaskAssignment($user, $this->task);
             $this->task->addExecutor($user);
         }
     }

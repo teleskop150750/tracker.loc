@@ -262,12 +262,12 @@ class Folder extends AggregateRoot
         $folder->setParent(null);
     }
 
-    public function getPublisheded(): FolderPublished
+    public function getPublished(): FolderPublished
     {
         return $this->published;
     }
 
-    public function setPublisheded(FolderPublished $published): void
+    public function setPublished(FolderPublished $published): void
     {
         $this->published = $published;
     }
@@ -282,7 +282,7 @@ class Folder extends AggregateRoot
 
     public function addTask(Task $task): void
     {
-        foreach ($this->sharedUsers as $item) {
+        foreach ($this->tasks as $item) {
             if ($item->isEqualTo($task)) {
                 return;
             }

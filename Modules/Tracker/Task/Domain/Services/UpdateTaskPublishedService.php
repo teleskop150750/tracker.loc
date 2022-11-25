@@ -27,7 +27,7 @@ class UpdateTaskPublishedService
         $folderPublished = FolderPublished::fromNative(true);
         $parent = $this->task->getFolder();
 
-        if (!$parent?->getPublisheded()->sameValueAs($folderPublished)) {
+        if (!$parent?->getPublished()->sameValueAs($folderPublished)) {
             return;
         }
 

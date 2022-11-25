@@ -6,7 +6,6 @@ namespace Modules\Tracker\Task\Application\Command\UpdateTask;
 
 use App\Support\Arr;
 use Doctrine\ORM\EntityManagerInterface;
-use InvalidArgumentException;
 use Modules\Auth\User\Domain\Entity\User;
 use Modules\Auth\User\Domain\Repository\UserRepositoryInterface;
 use Modules\Shared\Application\Command\CommandHandlerInterface;
@@ -28,6 +27,7 @@ use Modules\Tracker\Task\Domain\Entity\TaskRelationship\ValueObject\TaskRelation
 use Modules\Tracker\Task\Domain\Repository\Exceptions\TaskNotFoundException;
 use Modules\Tracker\Task\Domain\Repository\TaskRelationshipRepositoryInterface;
 use Modules\Tracker\Task\Domain\Repository\TaskRepositoryInterface;
+use Modules\Tracker\Task\Domain\Services\TaskNotification;
 use Modules\Tracker\Task\Domain\Services\UpdateTaskEndDateService;
 use Modules\Tracker\Task\Domain\Services\UpdateTaskExecutorsService;
 use Modules\Tracker\Task\Domain\Services\UpdateTaskFolderService;
@@ -44,6 +44,7 @@ class UpdateTaskCommandHandler implements CommandHandlerInterface
         private readonly FolderRepositoryInterface $folderRepository,
         private readonly UserRepositoryInterface $userRepository,
         private readonly EntityManagerInterface $entityManager,
+        private readonly TaskNotification $taskNotification,
     ) {
     }
 
@@ -77,7 +78,7 @@ class UpdateTaskCommandHandler implements CommandHandlerInterface
             }
 
             if (null !== $command->executors) {
-                UpdateTaskExecutorsService::make($task)->updateExecutors($this->getExecutors($command->executors));
+                UpdateTaskExecutorsService::make($task, $this->taskNotification)->updateExecutors($this->getExecutors($command->executors));
             }
 
             if (null !== $command->relationships) {
@@ -107,7 +108,7 @@ class UpdateTaskCommandHandler implements CommandHandlerInterface
 
             $this->entityManager->flush();
         } catch (TaskNotFoundException $exception) {
-            throw new InvalidArgumentException('папка не найдена');
+            throw new \InvalidArgumentException('папка не найдена');
         }
     }
 

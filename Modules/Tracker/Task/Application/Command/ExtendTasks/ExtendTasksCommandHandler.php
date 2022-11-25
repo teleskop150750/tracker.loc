@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Modules\Tracker\Task\Application\Command\ExtendTasks;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Modules\Shared\Application\Command\CommandHandlerInterface;
 use Modules\Tracker\Task\Domain\Entity\Task\Task;
@@ -17,7 +16,7 @@ use Modules\Tracker\Task\Domain\Repository\TaskRepositoryInterface;
 
 class ExtendTasksCommandHandler implements CommandHandlerInterface
 {
-    private DateTimeImmutable $toDay;
+    private \DateTimeImmutable $toDay;
 
     /**
      * @var array<string, string>
@@ -34,7 +33,7 @@ class ExtendTasksCommandHandler implements CommandHandlerInterface
         private readonly TaskRepositoryInterface $taskRepository,
         private readonly TaskRelationshipRepositoryInterface $taskRelationshipRepository,
     ) {
-        $this->toDay = (new DateTimeImmutable())->setTime(0, 0, 0, 0);
+        $this->toDay = (new \DateTimeImmutable())->setTime(0, 0, 0, 0);
     }
 
     public function __invoke(ExtendTasksCommand $command): void

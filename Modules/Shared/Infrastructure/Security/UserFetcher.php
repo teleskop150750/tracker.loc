@@ -29,7 +29,6 @@ class UserFetcher implements UserFetcherInterface
     {
         if (null === $this->user) {
             $id = $this->response->header('user-id');
-//            $id = 'a1e30b89-f6c3-41bd-ae5f-62add581ec2d';
             $user = $this->userRepository->find(UserUuid::fromNative($id));
             Assert::notNull($user, 'Current user not found check security access list');
             $this->user = $user;

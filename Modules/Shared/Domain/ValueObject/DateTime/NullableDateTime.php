@@ -4,17 +4,15 @@ declare(strict_types=1);
 
 namespace Modules\Shared\Domain\ValueObject\DateTime;
 
-use DateTimeImmutable;
 use Modules\Shared\Domain\ValueObject\Util\Util;
 use Modules\Shared\Domain\ValueObject\ValueObjectInterface;
 
 class NullableDateTime implements ValueObjectInterface
 {
-    public const DATE_FORMAT = 'Y/m/d';
     public const MYSQL_FORMAT = 'Y-m-d H:i:s';
-    protected ?DateTimeImmutable $value;
+    protected ?\DateTimeImmutable $value;
 
-    public function __construct(DateTimeImmutable $value = null)
+    public function __construct(\DateTimeImmutable $value = null)
     {
         $this->value = $value;
     }
@@ -24,12 +22,17 @@ class NullableDateTime implements ValueObjectInterface
         return $this->value->format(self::MYSQL_FORMAT);
     }
 
-    public function getValue(): ?DateTimeImmutable
+    public function getValue(): ?\DateTimeImmutable
     {
         return $this->value;
     }
 
-    public static function fromNative(DateTimeImmutable $value = null): static
+    public static function now(): static
+    {
+        return new static(new \DateTimeImmutable());
+    }
+
+    public static function fromNative(\DateTimeImmutable $value = null): static
     {
         return new static($value);
     }
@@ -40,7 +43,7 @@ class NullableDateTime implements ValueObjectInterface
             return new self(null);
         }
 
-        return new self(DateTimeImmutable::createFromFormat($format, $datetime));
+        return new self(\DateTimeImmutable::createFromFormat($format, $datetime));
     }
 
     public function sameValueAs(object $valueObject): bool

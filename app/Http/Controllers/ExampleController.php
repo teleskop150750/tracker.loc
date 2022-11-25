@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Services\UrlGenerator;
 use App\Support\Arr;
 use DateInterval;
 use Doctrine\ORM\EntityManagerInterface;
@@ -21,14 +22,13 @@ use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderType;
 use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderUuid;
 use Modules\Tracker\Folder\Domain\Repository\FolderRepositoryInterface;
 use Modules\Tracker\Folder\Domain\Services\FolderFormatter;
-use Modules\Tracker\Task\Application\Command\ExtendTasks\ExtendTasksCommand;
-use Modules\Tracker\Task\Application\Command\ExtendTasks\ExtendTasksCommandHandler;
 use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskPublished;
 use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskStatus;
 use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskUuid;
 use Modules\Tracker\Task\Domain\Entity\TaskRelationship\TaskRelationship;
 use Modules\Tracker\Task\Domain\Entity\TaskRelationship\ValueObject\TaskRelationshipType;
 use Modules\Tracker\Task\Domain\Entity\TaskRelationship\ValueObject\TaskRelationshipUuid;
+use Modules\Tracker\Task\Domain\Repository\FileRepositoryInterface;
 use Modules\Tracker\Task\Domain\Repository\TaskRelationshipRepositoryInterface;
 use Modules\Tracker\Task\Domain\Repository\TaskRepositoryInterface;
 use Modules\Tracker\Task\Domain\Services\UpdateTaskStatusService;
@@ -63,19 +63,22 @@ class ExampleController extends Controller
         ]);
     }
 
+    /**
+     * @return JsonResponse
+     */
     public function test(
         Request $request,
         EntityManagerInterface $em,
         UserRepositoryInterface $userRep,
         FolderRepositoryInterface $folderRep,
         TaskRepositoryInterface $taskRep,
+        FileRepositoryInterface $fileRepository,
         TaskRelationshipRepositoryInterface $taskRelationshipRep,
+        UrlGenerator $urlGenerator,
     ) {
-        /** @var ExtendTasksCommandHandler $app */
-        $cd = App::make(ExtendTasksCommand::class);
-        $app = App::make(ExtendTasksCommandHandler::class);
-        $app($cd);
-        dd($app);
+        $task = $fileRepository->getFilesInFolders(['97b13c1e-69a6-41f9-8c63-bc3e189d8ca8']);
+
+        dd($task);
 //        dd('');
 //        $dd = $taskRep->getExpiredTasks();
 //        $date1 = new \DateTimeImmutable('2022-09-16');

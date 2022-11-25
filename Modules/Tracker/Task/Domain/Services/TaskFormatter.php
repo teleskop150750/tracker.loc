@@ -41,12 +41,16 @@ class TaskFormatter
             'endDate' => $task['endDate.value']->format(DateTime::FRONTEND_FORMAT),
             'importance' => $task['importance.value'],
             'status' => $task['status.value'],
-            'createdAt' => $task['createdAt']->format('d-m-Y H:i:s'),
+            'createdAt' => $task['createdAt']->format(DateTime::W3C),
             'executors' => UserFormatter::make()->formatDQLUsers($task['executors']),
             'sharedUsers' => [],
             'entityType' => 'TASK',
             'duration' => $diffDays,
         ];
+
+        if (isset($task['files'])) {
+            $result['files'] = $this->formatFiles($task['files']);
+        }
 
         if (isset($task['taskRelationships'])) {
             $result['relationships'] = $this->formatRelations($task['taskRelationships']);
@@ -72,5 +76,26 @@ class TaskFormatter
         }
 
         return $result;
+    }
+
+    private function formatFiles(array $files): array
+    {
+        $result = [];
+
+        foreach ($files as $file) {
+            $result[] = $this->formatFile($file);
+        }
+
+        return $result;
+    }
+
+    private function formatFile(array $file): array
+    {
+        return [
+            'id' => $file['uuid']->getId(),
+            'originName' => $file['originName.value'],
+            'path' => $file['path.value'],
+            'createdAt' => $file['createdAt']->format(DateTime::W3C),
+        ];
     }
 }

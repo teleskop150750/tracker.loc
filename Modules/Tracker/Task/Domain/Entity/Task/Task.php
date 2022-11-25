@@ -21,6 +21,7 @@ use Modules\Shared\Domain\AggregateRoot;
 use Modules\Shared\Domain\ValueObject\Identity\UUID;
 use Modules\Shared\Infrastructure\Doctrine\Traits\TimestampableEntity;
 use Modules\Tracker\Folder\Domain\Entity\Folder\Folder;
+use Modules\Tracker\Task\Domain\Entity\File\File;
 use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskDescription;
 use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskEndDate;
 use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskImportance;
@@ -73,24 +74,22 @@ class Task extends AggregateRoot
     #[JoinColumn(name: 'folder_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
     private null|Folder $folder;
 
-    /**
-     * @var Collection<int, TaskRelationship>
-     */
+    /** @var Collection<int, TaskRelationship> */
     #[OneToMany(mappedBy: 'left', targetEntity: TaskRelationship::class, cascade: ['persist', 'remove'])]
     private Collection $taskRelationships;
 
-    /**
-     * @var Collection<int, TaskRelationship>
-     */
+    /** @var Collection<int, TaskRelationship> */
     #[OneToMany(mappedBy: 'right', targetEntity: TaskRelationship::class, cascade: ['persist', 'remove'])]
     private Collection $inverseTaskRelationships;
 
-    /**
-     * @var Collection<int, User>
-     */
+    /** @var Collection<int, User> */
     #[ManyToMany(targetEntity: User::class, mappedBy: 'assignedTasks')]
     #[JoinTable(name: 'task_executor')]
     private Collection $executors;
+
+    /** @var Collection<int, File> */
+    #[OneToMany(mappedBy: 'task', targetEntity: File::class)]
+    private Collection $files;
 
     public function __construct(
         TaskUuid $uuid,
@@ -317,6 +316,46 @@ class Task extends AggregateRoot
             $this->folder->removeTask($this);
             $this->folder = null;
         }
+    }
+
+    /**
+     * @return Collection<int, File>
+     */
+    public function getFiles(): Collection
+    {
+        return $this->files;
+    }
+
+    public function addFile(File $file): void
+    {
+        foreach ($this->files as $item) {
+            if ($item->isEqualTo($file)) {
+                return;
+            }
+        }
+
+        $this->files->add($file);
+        $file->setTask($this);
+    }
+
+    public function removeFile(File $file): void
+    {
+        $removed = false;
+
+        foreach ($this->files as $key => $item) {
+            if ($item->isEqualTo($file)) {
+                $this->files->remove($key);
+                $removed = true;
+
+                break;
+            }
+        }
+
+        if (false === $removed) {
+            return;
+        }
+
+        $file->removeTask();
     }
 
     private function assertDate(TaskStartDate $startDate, TaskEndDate $endDate): void

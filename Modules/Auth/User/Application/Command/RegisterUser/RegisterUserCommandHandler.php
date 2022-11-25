@@ -10,15 +10,18 @@ use Modules\Auth\User\Domain\Entity\ValueObject\UserDepartment;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserEmail;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserFullName;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserPassword;
+use Modules\Auth\User\Domain\Entity\ValueObject\UserPhone;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserPost;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;
 use Modules\Auth\User\Domain\Repository\UserRepositoryInterface;
+use Modules\Auth\User\Domain\Services\EmailVerification;
 use Modules\Shared\Application\Command\CommandHandlerInterface;
 
 class RegisterUserCommandHandler implements CommandHandlerInterface
 {
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
+        private readonly EmailVerification $emailVerification,
     ) {
     }
 
@@ -41,8 +44,11 @@ class RegisterUserCommandHandler implements CommandHandlerInterface
             UserPassword::fromPlainText($command->password),
         );
 
+        $user->setPhone(UserPhone::fromNative($command->phone));
         $user->setPost(UserPost::fromNative($command->post));
         $user->setDepartment(UserDepartment::fromNative($command->department));
+
+        $this->emailVerification->sendEmailVerificationNotification($user);
 
         $this->userRepository->save($user);
     }

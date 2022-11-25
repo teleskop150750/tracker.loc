@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Modules\Tracker\Task\Application\Command\CreateTask;
 
 use App\Support\Arr;
-use InvalidArgumentException;
 use Modules\Auth\User\Domain\Entity\User;
 use Modules\Auth\User\Domain\Repository\UserRepositoryInterface;
 use Modules\Shared\Application\Command\CommandHandlerInterface;
@@ -27,6 +26,7 @@ use Modules\Tracker\Task\Domain\Entity\TaskRelationship\ValueObject\TaskRelation
 use Modules\Tracker\Task\Domain\Entity\TaskRelationship\ValueObject\TaskRelationshipUuid;
 use Modules\Tracker\Task\Domain\Repository\TaskRelationshipRepositoryInterface;
 use Modules\Tracker\Task\Domain\Repository\TaskRepositoryInterface;
+use Modules\Tracker\Task\Domain\Services\TaskNotification;
 
 class CreateTaskCommandHandler implements CommandHandlerInterface
 {
@@ -36,6 +36,7 @@ class CreateTaskCommandHandler implements CommandHandlerInterface
         private readonly FolderRepositoryInterface $folderRepository,
         private readonly UserRepositoryInterface $userRepository,
         private readonly UserFetcherInterface $userFetcher,
+        private readonly TaskNotification $emailVerification,
     ) {
     }
 
@@ -68,6 +69,7 @@ class CreateTaskCommandHandler implements CommandHandlerInterface
             if (null !== $command->executors) {
                 foreach ($this->getExecutors($command->executors) as $user) {
                     $task->addExecutor($user);
+                    $this->emailVerification->sendNotificationOfTaskAssignment($user, $task);
                 }
             }
 
@@ -81,7 +83,7 @@ class CreateTaskCommandHandler implements CommandHandlerInterface
                 }
             }
         } catch (FolderNotFoundException $exception) {
-            throw new InvalidArgumentException('Родительская папка не найдена');
+            throw new \InvalidArgumentException('Родительская папка не найдена');
         }
     }
 

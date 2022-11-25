@@ -85,6 +85,7 @@ return [
     'custom_types' => [
         'user_uuid' => \Modules\Auth\User\Infrastructure\Doctrine\Types\UserUuidType::class,
         'task_uuid' => \Modules\Tracker\Task\Infrastructure\Doctrine\Types\TaskUuidType::class,
+        'file_uuid' => \Modules\Tracker\Task\Infrastructure\Doctrine\Types\FileUuidType::class,
         'task_relationship_uuid' => \Modules\Tracker\Task\Infrastructure\Doctrine\Types\TaskRelationshipUuidType::class,
         //        'folder_uuid' => \Modules\Tracker\Folder\Infrastructure\Doctrine\Types\FolderUuidType::class,
         //        'folder_access_uuid' => \Modules\Tracker\Folder\Infrastructure\Doctrine\Types\FolderAccessUuidType::class,

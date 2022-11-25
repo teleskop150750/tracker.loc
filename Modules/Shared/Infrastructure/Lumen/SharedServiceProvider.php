@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\Shared\Infrastructure\Lumen;
 
-use App\Application;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Lumen\Application;
 use Modules\Shared\Application\Command\CommandBusInterface;
 use Modules\Shared\Application\Query\QueryBusInterface;
 use Modules\Shared\Domain\Security\UserFetcherInterface;

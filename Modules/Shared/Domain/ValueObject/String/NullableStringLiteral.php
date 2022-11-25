@@ -21,7 +21,10 @@ class NullableStringLiteral implements ValueObjectInterface
         return $this->toNative();
     }
 
-    public static function fromNative(string $value = null): self
+    /**
+     * @return static
+     */
+    public static function fromNative(string $value = null)
     {
         return new self($value);
     }

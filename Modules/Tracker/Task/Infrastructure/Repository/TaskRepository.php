@@ -33,13 +33,13 @@ class TaskRepository extends AbstractDoctrineRepository implements TaskRepositor
      */
     public function find(TaskUuid $id): Task
     {
-        $folder = $this->repository(Task::class)->findOneBy(['uuid' => $id->getId()]);
+        $task = $this->repository(Task::class)->findOneBy(['uuid' => $id->getId()]);
 
-        if (!$folder) {
+        if (!$task) {
             throw new TaskNotFoundException('Задача не найдена');
         }
 
-        return $folder;
+        return $task;
     }
 
     public function findOrNull(TaskUuid $id): ?Task
@@ -261,11 +261,12 @@ class TaskRepository extends AbstractDoctrineRepository implements TaskRepositor
     {
         $em = $this->entityManager();
         $qb = $em->createQueryBuilder();
-        $qb = $qb->select('t', 'a', 'e', 'tr', 'r', 'ra', 're', 'f.id folderId')
+        $qb = $qb->select('t', 'a', 'e', 'tr', 'r', 'ra', 're', 'fl', 'f.id folderId')
             ->from(Task::class, 't')
             ->leftJoin('t.author', 'a')
             ->leftJoin('t.executors', 'e')
             ->leftJoin('t.folder', 'f')
+            ->leftJoin('t.files', 'fl')
             ->leftJoin('t.taskRelationships', 'tr')
             ->leftJoin('tr.right', 'r', Join::WITH, 'r.published.value = true')
             ->leftJoin('r.author', 'ra')

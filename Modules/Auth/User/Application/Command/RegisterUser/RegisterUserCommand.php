@@ -33,7 +33,7 @@ final class RegisterUserCommand implements CommandInterface
             $data['email'],
             $data['lastName'],
             $data['firstName'],
-            $data['patronymic'],
+            $data['patronymic'] ?? '',
             $data['password'],
             $data['phone'] ?? null,
             $data['department'] ?? null,

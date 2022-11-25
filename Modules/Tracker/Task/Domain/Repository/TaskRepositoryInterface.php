@@ -7,6 +7,7 @@ namespace Modules\Tracker\Task\Domain\Repository;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;
 use Modules\Tracker\Task\Domain\Entity\Task\Task;
 use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskUuid;
+use Modules\Tracker\Task\Domain\Repository\Exceptions\TaskNotFoundException;
 
 interface TaskRepositoryInterface
 {
@@ -14,6 +15,9 @@ interface TaskRepositoryInterface
 
     public function remove(Task $task): void;
 
+    /**
+     * @throws TaskNotFoundException
+     */
     public function find(TaskUuid $id): Task;
 
     public function findOrNull(TaskUuid $id): ?Task;

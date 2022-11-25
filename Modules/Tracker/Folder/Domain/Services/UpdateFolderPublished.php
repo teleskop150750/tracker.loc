@@ -30,7 +30,7 @@ class UpdateFolderPublished
      */
     public function updatePublished(FolderPublished $published): void
     {
-        if ($this->folder->getPublisheded()->sameValueAs($published)) {
+        if ($this->folder->getPublished()->sameValueAs($published)) {
             return;
         }
 
@@ -45,7 +45,7 @@ class UpdateFolderPublished
         $folders = [$this->folder, ...$this->folderRepository->children(node: $this->folder, includeTasks: true)];
 
         foreach ($folders as $item) {
-            $item->setPublisheded(FolderPublished::fromNative($publishedNative));
+            $item->setPublished(FolderPublished::fromNative($publishedNative));
 
             foreach ($item->getTasks() as $task) {
                 $task->setPublished(TaskPublished::fromNative($publishedNative));
@@ -59,6 +59,6 @@ class UpdateFolderPublished
             throw new \Exception('Родителя нет');
         }
 
-        return $folder->getParent()->getPublisheded()->toNative();
+        return $folder->getParent()->getPublished()->toNative();
     }
 }

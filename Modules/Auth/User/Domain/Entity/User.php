@@ -15,8 +15,10 @@ use Doctrine\ORM\Mapping\OneToMany;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserAvatar;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserDepartment;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserEmail;
+use Modules\Auth\User\Domain\Entity\ValueObject\UserEmailVerifiedAt;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserFullName;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserPassword;
+use Modules\Auth\User\Domain\Entity\ValueObject\UserPhone;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserPost;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;
 use Modules\Shared\Domain\AggregateRoot;
@@ -37,11 +39,17 @@ class User extends AggregateRoot
     #[Embedded(class: UserEmail::class, columnPrefix: false)]
     protected UserEmail $email;
 
+    #[Embedded(class: UserEmailVerifiedAt::class, columnPrefix: false)]
+    protected UserEmailVerifiedAt $emailVerifiedAt;
+
     #[Embedded(class: UserFullName::class, columnPrefix: false)]
     protected UserFullName $fullName;
 
     #[Embedded(class: UserAvatar::class, columnPrefix: false)]
     protected UserAvatar $avatar;
+
+    #[Embedded(class: UserPhone::class, columnPrefix: false)]
+    protected UserPhone $phone;
 
     #[Embedded(class: UserPassword::class, columnPrefix: false)]
     protected UserPassword $password;
@@ -102,14 +110,19 @@ class User extends AggregateRoot
         return $this->email;
     }
 
+    public function getEmailVerifiedAt(): UserEmailVerifiedAt
+    {
+        return $this->emailVerifiedAt;
+    }
+
+    public function setEmailVerifiedAt(UserEmailVerifiedAt $emailVerifiedAt): void
+    {
+        $this->emailVerifiedAt = $emailVerifiedAt;
+    }
+
     public function getFullName(): UserFullName
     {
         return $this->fullName;
-    }
-
-    public function getAvatar(): UserAvatar
-    {
-        return $this->avatar;
     }
 
     public function setFullName(UserFullName $fullName): void
@@ -117,9 +130,24 @@ class User extends AggregateRoot
         $this->fullName = $fullName;
     }
 
+    public function getAvatar(): UserAvatar
+    {
+        return $this->avatar;
+    }
+
     public function setAvatar(UserAvatar $avatar): void
     {
         $this->avatar = $avatar;
+    }
+
+    public function getPhone(): UserPhone
+    {
+        return $this->phone;
+    }
+
+    public function setPhone(UserPhone $phone): void
+    {
+        $this->phone = $phone;
     }
 
     public function getPost(): UserPost
@@ -145,6 +173,11 @@ class User extends AggregateRoot
     public function getPassword(): UserPassword
     {
         return $this->password;
+    }
+
+    public function setPassword(UserPassword $password): void
+    {
+        $this->password = $password;
     }
 
     /**

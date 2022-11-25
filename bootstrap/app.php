@@ -3,9 +3,12 @@
 declare(strict_types=1);
 
 use App\Exceptions\Handler;
+use App\Http\Middleware\ValidateSignature;
 use Fruitcake\Cors\CorsServiceProvider;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Filesystem\FilesystemServiceProvider;
+use Illuminate\Mail\MailServiceProvider;
 use LaravelDoctrine\ORM\DoctrineServiceProvider;
 use Modules\Auth\User\Infrastructure\Lumen\UserServiceProvider;
 use Modules\Shared\Infrastructure\Lumen\SharedServiceProvider;
@@ -15,9 +18,7 @@ use Modules\Tracker\Task\Infrastructure\Lumen\TaskServiceProvider;
 
 require_once __DIR__.'/../vendor/autoload.php';
 
-(new Laravel\Lumen\Bootstrap\LoadEnvironmentVariables(
-    dirname(__DIR__)
-))->bootstrap();
+(new Laravel\Lumen\Bootstrap\LoadEnvironmentVariables(dirname(__DIR__)))->bootstrap();
 
 date_default_timezone_set(env('APP_TIMEZONE', 'UTC'));
 
@@ -32,7 +33,7 @@ date_default_timezone_set(env('APP_TIMEZONE', 'UTC'));
 |
 */
 
-$app = new App\Application(
+$app = new Laravel\Lumen\Application(
     dirname(__DIR__)
 );
 
@@ -82,6 +83,15 @@ $app->singleton(
 $app->configure('app');
 $app->configure('cors');
 $app->configure('hashing');
+$app->configure('mail');
+$app->configure('filesystems');
+
+$app->alias('mail.manager', Illuminate\Mail\MailManager::class);
+$app->alias('mail.manager', Illuminate\Contracts\Mail\Factory::class);
+
+$app->alias('mailer', Illuminate\Mail\Mailer::class);
+$app->alias('mailer', Illuminate\Contracts\Mail\Mailer::class);
+$app->alias('mailer', Illuminate\Contracts\Mail\MailQueue::class);
 
 /*
 |--------------------------------------------------------------------------
@@ -102,9 +112,10 @@ $app->middleware([
     Fruitcake\Cors\HandleCors::class,
 ]);
 
-// $app->routeMiddleware([
-//     'auth' => App\Http\Middleware\Authenticate::class,
-// ]);
+$app->routeMiddleware([
+    //    'auth' => App\Http\Middleware\Authenticate::class,
+    'signed' => ValidateSignature::class,
+]);
 
 /*
 |--------------------------------------------------------------------------
@@ -117,7 +128,7 @@ $app->middleware([
 |
 */
 
-// $app->register(\App\Providers\AppServiceProvider::class);
+$app->register(\App\Providers\AppServiceProvider::class);
 // $app->register(App\Providers\AuthServiceProvider::class);
 // $app->register(App\Providers\EventServiceProvider::class);
 
@@ -128,6 +139,8 @@ $app->register(FolderServiceProvider::class);
 $app->register(TaskServiceProvider::class);
 $app->register(CorsServiceProvider::class);
 $app->register(DoctrineServiceProvider::class);
+$app->register(MailServiceProvider::class);
+$app->register(FilesystemServiceProvider::class);
 
 /*
 |--------------------------------------------------------------------------
@@ -140,7 +153,7 @@ $app->register(DoctrineServiceProvider::class);
 |
 */
 
-$app->router->group(['path' => '/api/v1'], function ($router): void {
+$app->router->group(['prefix' => '/api/v1'], function ($router): void {
     require __DIR__.'/../routes/web.php';
 });
 

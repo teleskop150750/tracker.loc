@@ -14,20 +14,13 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 
 class GetTaskController extends ApiController
 {
-    public function __invoke(Request $request, EntityManagerInterface $em): JsonResponse
+    public function __invoke(Request $request, EntityManagerInterface $em, string $id): JsonResponse
     {
         $conn = $em->getConnection();
         $conn->beginTransaction();
 
         try {
-            $folderData = $this->validate(
-                $request->all(),
-                [
-                    'id' => ['required'],
-                ]
-            );
-
-            $folder = $this->ask(GetTaskQuery::createFromArray($folderData));
+            $folder = $this->ask(GetTaskQuery::createFromArray(['id' => $id]));
             $conn->commit();
 
             return new JsonResponse([

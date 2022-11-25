@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use Closure;
-
 class ExampleMiddleware
 {
     /**
@@ -15,7 +13,7 @@ class ExampleMiddleware
      *
      * @return mixed
      */
-    public function handle($request, Closure $next)
+    public function handle($request, \Closure $next)
     {
         return $next($request);
     }
