@@ -6,6 +6,7 @@ namespace Modules\Tracker\Folder\Domain\Services;
 
 use App\Support\Arr;
 use Modules\Auth\User\Domain\Services\UserFormatter;
+use Modules\Shared\Domain\ValueObject\DateTime\DateTime;
 use Modules\Tracker\Task\Domain\Services\TaskFormatter;
 
 class FolderFormatter
@@ -211,7 +212,7 @@ class FolderFormatter
             'publish' => $folderData['published.value'],
             'author' => UserFormatter::make()->formatDQLUser($folderData['author']),
             'sharedUsers' => UserFormatter::make()->formatDQLUsers($folderData['sharedUsers']),
-            'createdAt' => $folderData['createdAt']->format('d-m-Y H:i:s'),
+            'createdAt' => $folderData['createdAt']->format(DateTime::W3C),
             'entityType' => 'FOLDER',
         ];
 

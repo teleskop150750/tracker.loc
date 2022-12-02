@@ -41,7 +41,7 @@ class TaskFormatter
             'endDate' => $task['endDate.value']->format(DateTime::FRONTEND_FORMAT),
             'importance' => $task['importance.value'],
             'status' => $task['status.value'],
-            'createdAt' => $task['createdAt']->format(DateTime::W3C),
+            'createdAt' => $task['createdAt']->format(DateTime::FRONTEND_FORMAT),
             'executors' => UserFormatter::make()->formatDQLUsers($task['executors']),
             'sharedUsers' => [],
             'entityType' => 'TASK',
@@ -95,7 +95,7 @@ class TaskFormatter
             'id' => $file['uuid']->getId(),
             'originName' => $file['originName.value'],
             'path' => $file['path.value'],
-            'createdAt' => $file['createdAt']->format(DateTime::W3C),
+            'createdAt' => $file['createdAt']->format(DateTime::FRONTEND_FORMAT),
         ];
     }
 }
