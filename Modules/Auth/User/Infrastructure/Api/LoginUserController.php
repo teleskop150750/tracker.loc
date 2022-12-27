@@ -9,7 +9,6 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Modules\Auth\User\Application\Query\LoginUser\LoginUserQuery;
 use Modules\Shared\Infrastructure\Lumen\ApiController;
-use Modules\Shared\Infrastructure\Lumen\ValidationExceptionNormalizer;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 class LoginUserController extends ApiController
@@ -30,27 +29,18 @@ class LoginUserController extends ApiController
 
             $user = $this->ask(LoginUserQuery::createFromArray($data));
 
-            if (!$user) {
-                throw ValidationException::withMessages(['email' => 'Ошибка']);
-            }
-
             $conn->commit();
 
-            return new JsonResponse([
-                'success' => true,
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'title' => 'Успешный выход',
                 'data' => $user->toArray(),
             ]);
-        } catch (ValidationException $exception) {
-            $conn->rollBack();
-
-            return ValidationExceptionNormalizer::make($exception)->getResponse();
         } catch (\Exception $exception) {
             $conn->rollBack();
 
-            return new JsonResponse([
-                'success' => false,
-                'message' => $exception->getMessage(),
-            ]);
+            throw $exception;
         }
     }
 }

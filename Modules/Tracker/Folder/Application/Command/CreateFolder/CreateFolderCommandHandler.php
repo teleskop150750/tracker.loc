@@ -4,20 +4,21 @@ declare(strict_types=1);
 
 namespace Modules\Tracker\Folder\Application\Command\CreateFolder;
 
+use App\Exceptions\HttpException;
+use Doctrine\ORM\QueryBuilder;
 use Modules\Auth\User\Domain\Entity\User;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;
 use Modules\Auth\User\Domain\Repository\UserNotFoundException;
 use Modules\Auth\User\Domain\Repository\UserRepositoryInterface;
 use Modules\Shared\Application\Command\CommandHandlerInterface;
 use Modules\Shared\Domain\Security\UserFetcherInterface;
+use Modules\Tracker\Folder\Application\Query\GetFolder\GetFolderQuery;
 use Modules\Tracker\Folder\Domain\Entity\Folder\Folder;
-use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderAccess;
 use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderName;
 use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderType;
 use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderUuid;
 use Modules\Tracker\Folder\Domain\Repository\FolderNotFoundException;
 use Modules\Tracker\Folder\Domain\Repository\FolderRepositoryInterface;
-use Webmozart\Assert\InvalidArgumentException;
 
 class CreateFolderCommandHandler implements CommandHandlerInterface
 {
@@ -28,6 +29,9 @@ class CreateFolderCommandHandler implements CommandHandlerInterface
     ) {
     }
 
+    /**
+     * @throws HttpException
+     */
     public function __invoke(CreateFolderCommand $command): void
     {
         try {
@@ -35,15 +39,13 @@ class CreateFolderCommandHandler implements CommandHandlerInterface
             $folderType = $command->type ?: FolderType::DEFAULT;
 
             if ($command->parent) {
-                $parentFolder = $this->folderRepository->find(FolderUuid::fromNative($command->parent));
-                $folderType = $this->getFolderType($command, $parentFolder);
+                $parentFolder = $this->getParentFolder($command);
             }
 
             $folder = new Folder(
                 FolderUuid::fromNative($command->id),
                 FolderName::fromNative($command->name),
                 $this->getAuthor($command),
-                FolderAccess::fromNative($command->access),
                 FolderType::fromNative($folderType),
             );
 
@@ -57,10 +59,34 @@ class CreateFolderCommandHandler implements CommandHandlerInterface
 
             $this->folderRepository->save($folder);
         } catch (FolderNotFoundException $exception) {
-            throw new InvalidArgumentException('Родительская папка не найдена');
-        } catch (UserNotFoundException $e) {
-            throw new InvalidArgumentException('Пользователь не найдена');
+            throw new HttpException('Родительская папка не найдена', 400, 400);
+        } catch (UserNotFoundException $exception) {
+            throw new HttpException('Пользователь не найдена', 400, 400);
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     *
+     * @throws FolderNotFoundException
+     */
+    public function getParentFolder(CreateFolderCommand $command): Folder
+    {
+        $auth = $this->userFetcher->getAuthUser();
+
+        $filter = static function (QueryBuilder $qb) use ($auth, $command) {
+            $qb->andWhere('f.id = :id')
+                ->andWhere($qb->expr()->orX(
+                    $qb->expr()->eq('su.uuid', ':userId'),
+                    $qb->expr()->eq('a.uuid', ':userId')
+                ))
+                ->setParameter('id', $command->parent)
+                ->setParameter('userId', $auth->getUuid()->getId());
+
+            return $qb;
+        };
+
+        return $this->folderRepository->getFolder($filter);
     }
 
     /**
@@ -76,7 +102,9 @@ class CreateFolderCommandHandler implements CommandHandlerInterface
     }
 
     /**
-     * @return User[]
+     * @param array<int, string> $ids
+     *
+     * @return array<int, User>
      */
     private function getSharedUsers(array $ids): array
     {
@@ -85,18 +113,5 @@ class CreateFolderCommandHandler implements CommandHandlerInterface
         }
 
         return $this->userRepository->findBy(['uuid' => $ids]);
-    }
-
-    private function getFolderType(CreateFolderCommand $command, Folder $parentFolder): string
-    {
-        if (FolderAccess::PUBLIC === $parentFolder->getAccess()->getType()) {
-            return FolderType::DEFAULT;
-        }
-
-        if (FolderAccess::PUBLIC === $command->access) {
-            return FolderType::PUBLIC_ROOT;
-        }
-
-        return FolderType::DEFAULT;
     }
 }

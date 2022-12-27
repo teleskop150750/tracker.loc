@@ -8,12 +8,13 @@ use Modules\Shared\Application\Command\CommandInterface;
 
 class UpdateFolderCommand implements CommandInterface
 {
+    /**
+     * @param array<int, string> $sharedUsers
+     */
     public function __construct(
         public readonly string $id,
         public readonly null|string $name = null,
-        public readonly null|bool $published = null,
-        public readonly null|string $access = null,
-        public readonly array $sharedUsers = [],
+        public readonly null|array $sharedUsers = null,
     ) {
     }
 
@@ -25,9 +26,7 @@ class UpdateFolderCommand implements CommandInterface
         return new static(
             $data['id'],
             $data['name'] ?? null,
-            $data['published'] ?? null,
-            $data['access'] ?? null,
-            $data['sharedUsers'] ?? [],
+            $data['sharedUsers'] ?? null,
         );
     }
 }

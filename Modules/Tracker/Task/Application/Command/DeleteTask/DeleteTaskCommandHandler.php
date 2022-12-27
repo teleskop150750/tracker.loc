@@ -20,7 +20,7 @@ class DeleteTaskCommandHandler implements CommandHandlerInterface
     public function __invoke(DeleteTaskCommand $command): void
     {
         try {
-            $task = $this->taskRepository->find(TaskUuid::fromNative($command->id));
+            $task = $this->taskRepository->getTaskQuery(TaskUuid::fromNative($command->id));
 
             foreach ($task->getFiles() as $file) {
                 Storage::delete($file->getPath()->toNative());

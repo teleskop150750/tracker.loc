@@ -12,84 +12,37 @@ use Modules\Tracker\Task\Domain\Entity\TaskRelationship\ValueObject\TaskRelation
 
 class UpdateTaskEndDateService
 {
-    private Task $task;
-
-    public function __construct(Task $task)
+    public function updateEndDate(Task $task, TaskEndDate $endDate): void
     {
-        $this->task = $task;
-    }
-
-    public static function make(Task $task): static
-    {
-        return new static($task);
-    }
-
-    public function updateEndDate(TaskEndDate $endDate): void
-    {
-        if ($this->task->getEndDate()->sameValueAs($endDate)) {
+        if ($task->getEndDate()->sameValueAs($endDate)) {
             return;
         }
 
-        $currentEndDateNative = new \DateTimeImmutable($this->task->getEndDate()->getDateTime()->format('Y-m-d'));
+        $currentEndDateNative = new \DateTimeImmutable($task->getEndDate()->getDateTime()->format('Y-m-d'));
         $endDateNative = new \DateTimeImmutable($endDate->getDateTime()->format('Y-m-d'));
-        $diffDays = $currentEndDateNative->diff($endDateNative)->format('%r%a');
+        $diffDays = (int) $currentEndDateNative->diff($endDateNative)->format('%r%a');
 
-        $this->updateEndDateProcess($this->task, $diffDays);
+        $this->updateEndDateProcess($task, $diffDays);
     }
 
-    private function updateStartDateProcess(
-        Task $task,
-        string $diff,
-    ): void {
-        $diffNumber = (int) $diff;
-        $diffString = $diffNumber >= 0 ? '+'.abs($diffNumber) : '-'.abs($diffNumber);
+    private function updateStartDateProcess(Task $task, int $diff): void
+    {
+        $diffString = $diff >= 0 ? '+'.abs($diff) : '-'.abs($diff);
 
         $currentStartDateNative = $task->getStartDate()->getDateTime();
         $currentStartDateNative = $currentStartDateNative->setTime(0, 0, 0, 0);
         $newStartDate = $currentStartDateNative->modify("{$diffString} day");
         $task->setStartDate(TaskStartDate::fromNative($newStartDate));
-
-//        if (false === $this->task->getPublished()->toNative()) {
-//            return;
-//        }
-
-        $startStartRelationships = $this->filterRelations(
-            $this->getInverseRelationships($task),
-            [TaskRelationshipType::fromNative(TaskRelationshipType::START_START)]
-        );
-
-        foreach ($startStartRelationships as $relationship) {
-            $left = $relationship->getLeft();
-            $this->updateStartDateProcess($left, $diff);
-            $this->updateEndDateProcess($left, $diff);
-        }
-
-        $startEndRelationships = $this->filterRelations(
-            $this->getInverseRelationships($task),
-            [TaskRelationshipType::fromNative(TaskRelationshipType::START_END)]
-        );
-
-        foreach ($startEndRelationships as $relationship) {
-            $left = $relationship->getLeft();
-            $this->updateEndDateProcess($left, $diff);
-        }
     }
 
-    private function updateEndDateProcess(
-        Task $task,
-        string $diff,
-    ): void {
-        $diffNumber = (int) $diff;
-        $diffString = $diffNumber >= 0 ? '+'.abs($diffNumber) : '-'.abs($diffNumber);
+    private function updateEndDateProcess(Task $task, int $diff): void
+    {
+        $diffString = $diff >= 0 ? '+'.abs($diff) : '-'.abs($diff);
 
         $currentEndDateNative = $task->getEndDate()->getDateTime();
         $currentEndDateNative = $currentEndDateNative->setTime(0, 0, 0, 0);
         $newEndDate = $currentEndDateNative->modify("{$diffString} day");
         $this->setEndDate($task, TaskEndDate::fromNative($newEndDate));
-
-//        if (false === $this->task->getPublished()->toNative()) {
-//            return;
-//        }
 
         $endStartRelationships = $this->filterRelations(
             $this->getInverseRelationships($task),
@@ -103,26 +56,6 @@ class UpdateTaskEndDateService
             $this->updateStartDateProcess($left, $diff);
             $this->updateEndDateProcess($left, $diff);
         }
-
-        $endEndRelationships = $this->filterRelations(
-            $this->getInverseRelationships($task),
-            [
-                TaskRelationshipType::fromNative(TaskRelationshipType::END_END),
-            ],
-        );
-
-        foreach ($endEndRelationships as $relationship) {
-            $left = $relationship->getLeft();
-            $this->updateEndDateProcess($left, $diff);
-        }
-    }
-
-    /**
-     * @return TaskRelationship[]
-     */
-    private function getInverseRelationships(Task $task): array
-    {
-        return $task->getInverseTaskRelationships()->toArray();
     }
 
     /**
@@ -169,5 +102,13 @@ class UpdateTaskEndDateService
             $newStartDate = TaskStartDate::fromNative(clone $taskEndDate->getDateTime());
             $task->setStartDate($newStartDate);
         }
+    }
+
+    /**
+     * @return TaskRelationship[]
+     */
+    private function getInverseRelationships(Task $task): array
+    {
+        return $task->getInverseTaskRelationships()->toArray();
     }
 }

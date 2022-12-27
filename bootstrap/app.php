@@ -113,7 +113,7 @@ $app->middleware([
 ]);
 
 $app->routeMiddleware([
-    //    'auth' => App\Http\Middleware\Authenticate::class,
+    'auth' => App\Http\Middleware\Authenticate::class,
     'signed' => ValidateSignature::class,
 ]);
 
@@ -130,7 +130,7 @@ $app->routeMiddleware([
 
 $app->register(\App\Providers\AppServiceProvider::class);
 // $app->register(App\Providers\AuthServiceProvider::class);
-// $app->register(App\Providers\EventServiceProvider::class);
+$app->register(App\Providers\EventServiceProvider::class);
 
 $app->register(SharedServiceProvider::class);
 $app->register(LumenServiceProvider::class);
@@ -154,6 +154,14 @@ $app->register(FilesystemServiceProvider::class);
 */
 
 $app->router->group(['prefix' => '/api/v1'], function ($router): void {
+    require __DIR__.'/../routes/auth.php';
+
+    require __DIR__.'/../routes/user.php';
+
+    require __DIR__ . '/../routes/folders.php';
+
+    require __DIR__.'/../routes/tasks.php';
+
     require __DIR__.'/../routes/web.php';
 });
 

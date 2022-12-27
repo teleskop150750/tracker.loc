@@ -4,96 +4,127 @@ declare(strict_types=1);
 
 namespace Modules\Tracker\Task\Domain\Services;
 
+use App\Support\Arr;
 use Modules\Tracker\Task\Domain\Entity\Task\Task;
 use Modules\Tracker\Task\Domain\Entity\TaskRelationship\TaskRelationship;
+use Modules\Tracker\Task\Domain\Entity\TaskRelationship\ValueObject\TaskRelationshipUuid;
 use Modules\Tracker\Task\Domain\Repository\TaskRelationshipRepositoryInterface;
 
 class UpdateTaskRelationsService
 {
-    private Task $task;
     private TaskRelationshipRepositoryInterface $taskRelationshipRepository;
 
-    public function __construct(Task $task, TaskRelationshipRepositoryInterface $taskRelationshipRepository)
+    public function __construct(TaskRelationshipRepositoryInterface $taskRelationshipRepository)
     {
-        $this->task = $task;
         $this->taskRelationshipRepository = $taskRelationshipRepository;
     }
 
-    public static function make(Task $task, TaskRelationshipRepositoryInterface $taskRelationshipRepository): static
+    /**
+     * @param Task[] $depends
+     */
+    public function updateDepends(Task $task, array $depends): void
     {
-        return new static($task, $taskRelationshipRepository);
+        $this->removeDepends($task, $depends);
+        $this->addNewDepends($task, $depends);
     }
 
     /**
-     * @param TaskRelationship[] $relationships
+     * @param Task $task
+     * @param array $affects
      */
-    public function updateRelations(array $relationships): void
+    public function updateAffects(Task $task, array $affects): void
     {
-        $newRelationshipsById = [];
+        $this->removeAffects($task, $affects);
+        $this->addNewAffects($task, $affects);
+    }
 
-        foreach ($relationships as $relationship) {
-            $newRelationshipsById[$relationship->getUuid()->getId()] = $relationship;
-        }
-
-        $currentRelationships = $this->getCurrentRelations();
-
-        $currentRelationshipsById = [];
+    /**
+     * @param Task $task
+     * @param Task[] $depends
+     */
+    private function removeDepends(Task $task, array $depends): void
+    {
+        $currentRelationships = $task->getInverseTaskRelationships()->toArray();
+        $ids = Arr::map($depends, static function (Task $task): void {
+            $task->getUuid()->getId();
+        });
 
         foreach ($currentRelationships as $relationship) {
-            $currentRelationshipsById[$relationship->getUuid()->getId()] = $relationship;
-        }
+            $id = $relationship->getLeft()->getUuid()->getId();
 
-        $this->removeRelationships($currentRelationships, $newRelationshipsById);
-        $this->addNewRelationships($currentRelationshipsById, $relationships);
+            if (!\in_array($id, $ids, true)) {
+                $this->taskRelationshipRepository->remove($relationship);
+            }
+        }
     }
 
     /**
-     * @param TaskRelationship[]              $currentRelationships
-     * @param array<string, TaskRelationship> $newRelationshipsById
+     * @param Task $task
+     * @param Task[] $depends
      */
-    private function removeRelationships(array $currentRelationships, array $newRelationshipsById): void
+    private function addNewDepends(Task $task, array $depends): void
     {
-        $diffRelationshipsForRemove = [];
+        $currentRelationships = $task->getInverseTaskRelationships()->toArray();
+        $ids = Arr::map($currentRelationships, static function (TaskRelationship $relationship): void {
+            $relationship->getLeft()->getUuid()->getId();
+        });
+
+        foreach ($depends as $depend) {
+            $id = $depend->getUuid()->getId();
+
+            if (!\in_array($id, $ids, true)) {
+                $relationship = new TaskRelationship(
+                    TaskRelationshipUuid::generateRandom(),
+                    $task,
+                    $depend,
+                );
+                $this->taskRelationshipRepository->save($relationship);
+            }
+        }
+    }
+
+    /**
+     * @param Task $task
+     * @param Task[] $affects
+     */
+    private function removeAffects(Task $task, array $affects): void
+    {
+        $currentRelationships = $task->getTaskRelationships()->toArray();
+        $ids = Arr::map($affects, static function (Task $task): void {
+            $task->getUuid()->getId();
+        });
 
         foreach ($currentRelationships as $relationship) {
-            $id = $relationship->getUuid()->getId();
+            $id = $relationship->getRight()->getUuid()->getId();
 
-            if (!isset($newRelationshipsById[$id])) {
-                $diffRelationshipsForRemove[] = $relationship;
+            if (!\in_array($id, $ids, true)) {
+                $this->taskRelationshipRepository->remove($relationship);
             }
-        }
-
-        foreach ($diffRelationshipsForRemove as $item) {
-            $this->taskRelationshipRepository->remove($item);
         }
     }
 
     /**
-     * @param array<string, TaskRelationship> $currentRelationshipsById
-     * @param TaskRelationship[]              $newRelationships
+     * @param Task $task
+     * @param Task[] $affects
      */
-    private function addNewRelationships(array $currentRelationshipsById, array $newRelationships): void
+    private function addNewAffects(Task $task, array $affects): void
     {
-        $diffRelationshipsForSave = [];
+        $currentRelationships = $task->getInverseTaskRelationships()->toArray();
+        $ids = Arr::map($currentRelationships, static function (TaskRelationship $relationship): void {
+            $relationship->getRight()->getUuid()->getId();
+        });
 
-        foreach ($newRelationships as $relationship) {
-            $id = $relationship->getUuid()->getId();
+        foreach ($affects as $affect) {
+            $id = $affect->getUuid()->getId();
 
-            if (!isset($currentRelationshipsById[$id])) {
-                $diffRelationshipsForSave[] = $relationship;
+            if (!\in_array($id, $ids, true)) {
+                $relationship = new TaskRelationship(
+                    TaskRelationshipUuid::generateRandom(),
+                    $affect,
+                    $task,
+                );
+                $this->taskRelationshipRepository->save($relationship);
             }
         }
-
-        foreach ($diffRelationshipsForSave as $item) {
-            $this->taskRelationshipRepository->save($item);
-        }
-    }
-
-    /**
-     * @return TaskRelationship[]
-     */
-    private function getCurrentRelations(): array
-    {
-        return $this->task->getTaskRelationships()->toArray();
     }
 }

@@ -6,22 +6,19 @@ namespace Modules\Tracker\Folder\Domain\Services;
 
 use Modules\Auth\User\Domain\Entity\User;
 use Modules\Tracker\Folder\Domain\Entity\Folder\Folder;
-use Modules\Tracker\Folder\Domain\Repository\FolderRepositoryInterface;
 
 class UpdateFolderSharedUsers
 {
-    private Folder $folder;
-    private FolderRepositoryInterface $folderRepository;
+    private readonly Folder $folder;
 
-    public function __construct(Folder $folder, FolderRepositoryInterface $folderRepository)
+    public function __construct(Folder $folder)
     {
         $this->folder = $folder;
-        $this->folderRepository = $folderRepository;
     }
 
-    public static function make(Folder $folder, FolderRepositoryInterface $folderRepository): static
+    public static function make(Folder $folder): static
     {
-        return new static($folder, $folderRepository);
+        return new static($folder);
     }
 
     /**
@@ -29,71 +26,44 @@ class UpdateFolderSharedUsers
      */
     public function updateSharedUsers(array $users): void
     {
-        $inheritedUsersKeyById = [];
-        $parents = $this->folderRepository->getParentFoldersEntity([$this->folder->getUuid()]);
+        $currentSharedUsers = $this->folder->getSharedUsers();
+        $currentSharedUsersKeyById = [];
+        $usersKeyById = [];
 
-        foreach ($parents as $parent) {
-            $author = $parent->getAuthor();
-            $inheritedUsersKeyById[$author->getUuid()->getId()] = $author;
-
-            foreach ($parent->getSharedUsers() as $sharedUser) {
-                $inheritedUsersKeyById[$sharedUser->getUuid()->getId()] = $sharedUser;
-            }
+        foreach ($currentSharedUsers as $user) {
+            $currentSharedUsersKeyById[$user->getUuid()->getId()] = $user;
         }
 
-        $diffUsersKeyById = [];
+        foreach ($users as $user) {
+            $usersKeyById[$user->getUuid()->getId()] = $user;
+        }
+
+        $diffAdd = [];
 
         foreach ($users as $user) {
-            if (isset($inheritedUsersKeyById[$user->getUuid()->getId()])) {
+            if (isset($currentSharedUsersKeyById[$user->getUuid()->getId()])) {
                 break;
             }
 
-            $diffUsersKeyById[$user->getUuid()->getId()] = $user;
+            $diffAdd[$user->getUuid()->getId()] = $user;
         }
 
-        /** @var Folder[] $children */
-        $children = $this->folderRepository->children($this->folder, includeTasks: true, includeSharedUsers: true);
+        $diffDelete = [];
 
-        foreach ($children as $child) {
-            $sharedUsers = $child->getSharedUsers();
-
-            foreach ($sharedUsers as $sharedUser) {
-                if (isset($diffUsersKeyById[$sharedUser->getUuid()->getId()])) {
-                    $sharedUser->removeSharedFolder($child);
-                }
+        foreach ($currentSharedUsers as $user) {
+            if (isset($usersKeyById[$user->getUuid()->getId()])) {
+                break;
             }
 
-            $tasks = $child->getTasks();
-            foreach ($tasks as $task) {
-                $executors = $task->getExecutors();
-
-                foreach ($executors as $executor) {
-                    if (isset($diffUsersKeyById[$executor->getUuid()->getId()])) {
-                        $executor->removeAssignedTasks($task);
-                    }
-                }
-            }
+            $diffDelete[$user->getUuid()->getId()] = $user;
         }
 
-        $currentSharedUsers = $this->folder->getSharedUsers();
-
-        foreach ($currentSharedUsers as $currentSharedUser) {
-            $currentSharedUser->removeSharedFolder($this->folder);
+        foreach ($diffDelete as $user) {
+            $user->removeSharedFolder($this->folder);
         }
 
-        foreach ($diffUsersKeyById as $diffUser) {
-            $diffUser->addSharedFolder($this->folder);
+        foreach ($diffAdd as $user) {
+            $user->addSharedFolder($this->folder);
         }
-    }
-
-    private function getParent(): Folder
-    {
-        $parent = $this->folder->getParent();
-
-        if (!$parent) {
-            throw new \Exception('Родителя нет');
-        }
-
-        return $parent;
     }
 }

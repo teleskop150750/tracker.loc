@@ -24,7 +24,7 @@ class TaskAddFileCommandHandler implements CommandHandlerInterface
 
     public function __invoke(TaskAddFileCommand $command): void
     {
-        $task = $this->taskRepository->find(TaskUuid::fromNative($command->taskId));
+        $task = $this->taskRepository->getTaskQuery(TaskUuid::fromNative($command->taskId));
         $fileName = Storage::putFile($command->taskId, $command->file);
         $file = new File(
             FileUuid::fromNative($command->fileId),

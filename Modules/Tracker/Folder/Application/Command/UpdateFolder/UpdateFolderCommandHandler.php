@@ -4,20 +4,19 @@ declare(strict_types=1);
 
 namespace Modules\Tracker\Folder\Application\Command\UpdateFolder;
 
+use App\Exceptions\HttpException;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\QueryBuilder;
 use Modules\Auth\User\Domain\Entity\User;
 use Modules\Auth\User\Domain\Repository\UserRepositoryInterface;
 use Modules\Shared\Application\Command\CommandHandlerInterface;
-use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderAccess;
+use Modules\Shared\Domain\Security\UserFetcherInterface;
+use Modules\Tracker\Folder\Domain\Entity\Folder\Folder;
 use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderName;
-use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderPublished;
-use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderUuid;
+use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderType;
 use Modules\Tracker\Folder\Domain\Repository\FolderNotFoundException;
 use Modules\Tracker\Folder\Domain\Repository\FolderRepositoryInterface;
-use Modules\Tracker\Folder\Domain\Services\UpdateFolderAccess;
-use Modules\Tracker\Folder\Domain\Services\UpdateFolderPublished;
 use Modules\Tracker\Folder\Domain\Services\UpdateFolderSharedUsers;
-use Webmozart\Assert\InvalidArgumentException;
 
 class UpdateFolderCommandHandler implements CommandHandlerInterface
 {
@@ -25,40 +24,72 @@ class UpdateFolderCommandHandler implements CommandHandlerInterface
         private readonly FolderRepositoryInterface $folderRepository,
         private readonly UserRepositoryInterface $userRepository,
         private readonly EntityManagerInterface $entityManager,
+        private readonly UserFetcherInterface $userFetcher,
     ) {
     }
 
+    /**
+     * @throws FolderNotFoundException
+     * @throws HttpException
+     */
     public function __invoke(UpdateFolderCommand $command): void
     {
-        try {
-            $folder = $this->folderRepository->find(FolderUuid::fromNative($command->id));
+        $folder = $this->getFolder($command->id);
 
-            if (null !== $command->name) {
-                $folder->setName(FolderName::fromNative($command->name));
-            }
+        $this->checkFolder($folder);
+        $this->updateName($folder, $command);
+        $this->updateSharedUsers($folder, $command);
 
-            if (null !== $command->published) {
-                UpdateFolderPublished::make($folder, $this->folderRepository)
-                    ->updatePublished(FolderPublished::fromNative($command->published));
-            }
+        $this->entityManager->flush();
+    }
 
-            if (null !== $command->access) {
-                UpdateFolderAccess::make($folder, $this->folderRepository)
-                    ->updateAccess(FolderAccess::fromNative($command->access));
-            }
+    private function getFolder(string $id): Folder
+    {
+        $auth = $this->userFetcher->getAuthUser();
 
-            if (null !== $command->sharedUsers) {
-                UpdateFolderSharedUsers::make($folder, $this->folderRepository)
-                    ->updateSharedUsers($this->getSharedUsers($command->sharedUsers));
-            }
+        $filter = static function (QueryBuilder $qb) use ($auth, $id) {
+            $qb->andWhere('f.id = :id')
+                ->andWhere($qb->expr()->orX(
+                    $qb->expr()->eq('su.uuid', ':userId'),
+                    $qb->expr()->eq('a.uuid', ':userId')
+                ))
+                ->setParameter('id', $id)
+                ->setParameter('userId', $auth->getUuid()->getId());
 
-            $this->entityManager->flush();
-        } catch (FolderNotFoundException $exception) {
-            throw new InvalidArgumentException('папка не найдена');
+            return $qb;
+        };
+
+        return $this->folderRepository->getFolder($filter);
+    }
+
+    /**
+     * @throws HttpException
+     */
+    private function checkFolder(Folder $folder): void
+    {
+        if (FolderType::ROOT === $folder->getType()->toNative()) {
+            throw new HttpException('Недостаточно прав', 403, 403);
+        }
+    }
+
+    private function updateName(Folder $folder, UpdateFolderCommand $command): void
+    {
+        if (null !== $command->name) {
+            $folder->setName(FolderName::fromNative($command->name));
+        }
+    }
+
+    private function updateSharedUsers(Folder $folder, UpdateFolderCommand $command): void
+    {
+        if (null !== $command->sharedUsers) {
+            $users = $this->getSharedUsers($command->sharedUsers);
+            UpdateFolderSharedUsers::make($folder)->updateSharedUsers($users);
         }
     }
 
     /**
+     * @param array<int, string> $ids
+     *
      * @return User[]
      */
     private function getSharedUsers(array $ids): array

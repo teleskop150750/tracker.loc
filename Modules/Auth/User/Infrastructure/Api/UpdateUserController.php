@@ -10,7 +10,6 @@ use Illuminate\Validation\ValidationException;
 use Modules\Auth\User\Application\Command\UpdateUser\UpdateUserCommand;
 use Modules\Auth\User\Application\Command\UpdateUserPassword\UpdateUserPasswordCommand;
 use Modules\Shared\Infrastructure\Lumen\ApiController;
-use Modules\Shared\Infrastructure\Lumen\ValidationExceptionNormalizer;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 class UpdateUserController extends ApiController
@@ -36,21 +35,16 @@ class UpdateUserController extends ApiController
             $this->dispatch(UpdateUserCommand::createFromArray($userData));
             $conn->commit();
 
-            return new JsonResponse([
-                'success' => true,
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'title' => 'Обновлено',
                 'data' => $userData,
             ]);
-        } catch (ValidationException $exception) {
-            $conn->rollBack();
-
-            return ValidationExceptionNormalizer::make($exception)->getResponse();
         } catch (\Exception $exception) {
             $conn->rollBack();
 
-            return new JsonResponse([
-                'success' => false,
-                'message' => $exception->getMessage(),
-            ]);
+            throw $exception;
         }
     }
 
@@ -72,21 +66,16 @@ class UpdateUserController extends ApiController
             $this->dispatch(UpdateUserPasswordCommand::createFromArray($userData));
             $conn->commit();
 
-            return new JsonResponse([
-                'success' => true,
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'title' => 'Обновлено',
                 'data' => $userData,
             ]);
-        } catch (ValidationException $exception) {
-            $conn->rollBack();
-
-            return ValidationExceptionNormalizer::make($exception)->getResponse();
         } catch (\Exception $exception) {
             $conn->rollBack();
 
-            return new JsonResponse([
-                'success' => false,
-                'message' => $exception->getMessage(),
-            ]);
+            throw $exception;
         }
     }
 }

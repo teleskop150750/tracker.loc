@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Modules\Auth\User\Application\Command\RegisterUser;
 
+use Illuminate\Support\Facades\Event;
 use Illuminate\Validation\ValidationException;
+use Modules\Auth\User\Domain\Entity\Events\RegisterUserEvent;
 use Modules\Auth\User\Domain\Entity\User;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserDepartment;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserEmail;
@@ -14,15 +16,12 @@ use Modules\Auth\User\Domain\Entity\ValueObject\UserPhone;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserPost;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;
 use Modules\Auth\User\Domain\Repository\UserRepositoryInterface;
-use Modules\Auth\User\Domain\Services\EmailVerification;
 use Modules\Shared\Application\Command\CommandHandlerInterface;
 
 class RegisterUserCommandHandler implements CommandHandlerInterface
 {
-    public function __construct(
-        private readonly UserRepositoryInterface $userRepository,
-        private readonly EmailVerification $emailVerification,
-    ) {
+    public function __construct(private readonly UserRepositoryInterface $userRepository)
+    {
     }
 
     public function __invoke(RegisterUserCommand $command): void
@@ -48,8 +47,8 @@ class RegisterUserCommandHandler implements CommandHandlerInterface
         $user->setPost(UserPost::fromNative($command->post));
         $user->setDepartment(UserDepartment::fromNative($command->department));
 
-        $this->emailVerification->sendEmailVerificationNotification($user);
-
         $this->userRepository->save($user);
+
+        Event::dispatch(new RegisterUserEvent($user));
     }
 }

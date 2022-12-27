@@ -4,159 +4,136 @@ declare(strict_types=1);
 
 namespace Modules\Tracker\Task\Application\Query\GetTask;
 
+use App\Support\Arr;
+use Doctrine\ORM\Query\Expr\Join;
+use Doctrine\ORM\QueryBuilder;
 use Modules\Shared\Application\Query\QueryHandlerInterface;
-use Modules\Tracker\Task\Domain\Entity\Task\Task;
+use Modules\Shared\Domain\Security\UserFetcherInterface;
 use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskStatus;
-use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskUuid;
-use Modules\Tracker\Task\Domain\Entity\TaskRelationship\TaskRelationship;
-use Modules\Tracker\Task\Domain\Entity\TaskRelationship\ValueObject\TaskRelationshipType;
+use Modules\Tracker\Task\Domain\Repository\Exceptions\TaskNotFoundException;
+use Modules\Tracker\Task\Domain\Repository\TaskRelationshipRepositoryInterface;
 use Modules\Tracker\Task\Domain\Repository\TaskRepositoryInterface;
 
 class GetTaskQueryHandler implements QueryHandlerInterface
 {
-    private Task $task;
-
     public function __construct(
         private readonly TaskRepositoryInterface $taskRepository,
+        private readonly TaskRelationshipRepositoryInterface $taskRelationshipRepository,
+        private readonly UserFetcherInterface $userFetcher,
     ) {
     }
 
+    /**
+     * @throws TaskNotFoundException
+     */
     public function __invoke(GetTaskQuery $command): GetTaskResponse
     {
-        $this->task = $this->taskRepository->find(TaskUuid::fromNative($command->id));
-        $info = $this->taskRepository->getTaskInfo(TaskUuid::fromNative($command->id));
-
-        $CAN_BEGIN_TASK = $this->canBeginTask();
-        $CAN_END_TASK = $this->canEndTask();
-
-        $rights = [
+        $task = $this->getTask($command);
+        $allRelations = $this->getAllRelations($command);
+        $CAN_BEGIN_TASK = $this->canBeginTask($allRelations);
+        $RIGHTS = [
             'CAN_BEGIN_TASK' => $CAN_BEGIN_TASK,
-            'CAN_END_TASK' => $CAN_BEGIN_TASK && $CAN_END_TASK,
         ];
 
-        return GetTaskResponse::fromArray([
-            'task' => $info,
-            'rights' => $rights,
-        ]);
-    }
+        $task['RIGHTS'] = $RIGHTS;
 
-    private function canBeginTask(): bool
-    {
-        $relationships = [
-            ...$this->filterRelations(
-                $this->getRelations(),
-                [TaskRelationshipType::fromNative(TaskRelationshipType::END_START)],
-                [
-                    TaskStatus::fromNative(TaskStatus::DONE),
-                    TaskStatus::fromNative(TaskStatus::CANCELLED),
-                ],
-            ),
-            ...$this->filterRelations(
-                $this->getRelations(),
-                [TaskRelationshipType::fromNative(TaskRelationshipType::START_START)],
-                [
-                    TaskStatus::fromNative(TaskStatus::IN_WORK),
-                    TaskStatus::fromNative(TaskStatus::DONE),
-                    TaskStatus::fromNative(TaskStatus::CANCELLED),
-                ],
-            ),
-        ];
-
-        return \count($relationships) <= 0;
-    }
-
-    private function canEndTask(): bool
-    {
-        $relationships = [
-            ...$this->filterRelations(
-                $this->getRelations(),
-                [TaskRelationshipType::fromNative(TaskRelationshipType::END_END)],
-                [
-                    TaskStatus::fromNative(TaskStatus::DONE),
-                    TaskStatus::fromNative(TaskStatus::CANCELLED),
-                ],
-            ),
-            ...$this->filterRelations(
-                $this->getRelations(),
-                [TaskRelationshipType::fromNative(TaskRelationshipType::START_END)],
-                [
-                    TaskStatus::fromNative(TaskStatus::IN_WORK),
-                    TaskStatus::fromNative(TaskStatus::DONE),
-                    TaskStatus::fromNative(TaskStatus::CANCELLED),
-                ],
-            ),
-        ];
-
-        return \count($relationships) <= 0;
+        return GetTaskResponse::fromArray($task);
     }
 
     /**
-     * @return TaskRelationship[]
-     */
-    private function getRelations(): array
-    {
-        return $this->task->getTaskRelationships()->toArray();
-    }
-
-    /**
-     * @param TaskRelationship[]     $relationships
-     * @param TaskRelationshipType[] $types
-     * @param TaskStatus[]           $statuses
+     * @return array<string, any>
      *
-     * @return TaskRelationship[]
+     * @throws TaskNotFoundException
      */
-    private function filterRelations(array $relationships, array $types, array $statuses): array
+    private function getTask(GetTaskQuery $command): array
     {
-        $result = [];
+        $auth = $this->userFetcher->getAuthUser();
+        $ids = $this->getAvailableTasksIds();
+        $filter = static function (QueryBuilder $qb) use ($auth, $command, $ids): QueryBuilder {
+            return $qb->andWhere('t.uuid = :id')
+                ->andWhere($qb->expr()->orX(
+                    $qb->expr()->eq('a.uuid', ':userId'),
+                    $qb->expr()->eq('e.uuid', ':userId')
+                ))
+                ->addSelect(
+                    'PARTIAL tr.{uuid}',
+                    'PARTIAL r.{uuid,createdAt,updatedAt,startDate.value,endDate.value,status.value,importance.value,description.value}',
+                    'PARTIAL tir.{uuid}',
+                    'PARTIAL l.{uuid,createdAt,updatedAt,startDate.value,endDate.value,status.value,importance.value,description.value}',
+                )
+                ->leftJoin('t.taskRelationships', 'tr')
+                ->leftJoin('tr.right', 'r', Join::WITH, $qb->expr()->in('r.uuid', ':ids'))
+                ->leftJoin('t.inverseTaskRelationships', 'tir')
+                ->leftJoin('tir.left', 'l', Join::WITH, $qb->expr()->in('l.uuid', ':ids'))
+                ->setParameter('id', $command->id)
+                ->setParameter('ids', $ids)
+                ->setParameter('userId', $auth->getUuid()->getId());
+        };
 
-        foreach ($relationships as $relationship) {
-            $right = $relationship->getRight();
-            $type = $relationship->getType();
-            $rightStatus = $right->getStatus();
+        $response = $this->taskRepository->getTaskQuery($filter);
 
-            if (false === $right->getPublished()->toNative()) {
-                continue;
-            }
-
-            if (!$this->checkType($type, $types)) {
-                continue;
-            }
-
-            if ($this->checkTaskStatus($rightStatus, $statuses)) {
-                continue;
-            }
-
-            $result[] = $relationship;
+        if (!isset($response['taskRelationships'])) {
+            $response['taskRelationships'] = [];
         }
 
-        return $result;
+        if (!isset($response['inverseTaskRelationships'])) {
+            $response['inverseTaskRelationships'] = [];
+        }
+
+        return $response;
     }
 
     /**
-     * @param TaskRelationshipType[] $types
+     * @return string[]
      */
-    private function checkType(TaskRelationshipType $type, array $types = []): bool
+    private function getAvailableTasksIds(): array
     {
-        foreach ($types as $item) {
-            if ($item->sameValueAs($type)) {
-                return true;
-            }
-        }
+        $auth = $this->userFetcher->getAuthUser();
+        $filter = static function (QueryBuilder $qb) use ($auth): QueryBuilder {
+            return $qb->andWhere($qb->expr()->orX(
+                $qb->expr()->eq('a.uuid', ':userId'),
+                $qb->expr()->eq('e.uuid', ':userId')
+            ))
+                ->select('t')
+                ->setParameter('userId', $auth->getUuid()->getId());
+        };
 
-        return false;
+        $response = $this->taskRepository->getTasksQuery($filter);
+
+        return Arr::pluck($response, 'id');
     }
 
     /**
-     * @param TaskStatus[] $statuses
+     * @return array<int, mixed>
      */
-    private function checkTaskStatus(TaskStatus $status, array $statuses = []): bool
+    private function getAllRelations(GetTaskQuery $command): array
     {
-        foreach ($statuses as $item) {
-            if ($item->sameValueAs($status)) {
-                return true;
+        $filter = static function (QueryBuilder $qb) use ($command): QueryBuilder {
+            return $qb->select('PARTIAL tr.{uuid}')
+                ->addSelect('PARTIAL r.{uuid,status.value}')
+                ->join('tr.left', 'l')
+                ->join('tr.right', 'r')
+                ->where('l.uuid = :id')
+                ->setParameter('id', $command->id)
+                ->orderBy('r.endDate.value', 'ASC');
+        };
+
+        $response = $this->taskRelationshipRepository->getTasksRelationshipsQuery($filter);
+
+        return Arr::pluck($response, 'right');
+    }
+
+    /**
+     * @param array<int, mixed> $relations
+     */
+    private function canBeginTask(array $relations): bool
+    {
+        foreach ($relations as $task) {
+            if (!TaskStatus::fromNative($task['status'])->sameValueAs(TaskStatus::fromNative(TaskStatus::DONE))) {
+                return false;
             }
         }
 
-        return false;
+        return true;
     }
 }

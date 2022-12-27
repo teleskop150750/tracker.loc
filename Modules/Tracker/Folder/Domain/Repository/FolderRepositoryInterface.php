@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Modules\Tracker\Folder\Domain\Repository;
 
+use DateTimeImmutable;
+use Doctrine\ORM\QueryBuilder;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;
 use Modules\Tracker\Folder\Domain\Entity\Folder\Folder;
 use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderUuid;
+use Modules\Tracker\Task\Domain\Entity\Task\Task;
 
 interface FolderRepositoryInterface
 {
@@ -15,18 +18,55 @@ interface FolderRepositoryInterface
     public function remove(Folder $folder): void;
 
     /**
+     * @param callable(QueryBuilder): QueryBuilder $filter
+     *
      * @throws FolderNotFoundException
      */
-    public function find(FolderUuid $id): Folder;
+    public function getFolder(callable $filter): Folder;
 
-    public function findOrNull(FolderUuid $id): ?Folder;
+    /**
+     * @return array<string, mixed>
+     *
+     * @throws FolderNotFoundException
+     */
+    public function getFolderQuery(callable $filter): array;
 
     /**
      * @return Folder[]
      */
-    public function all(): array;
+    public function getFolders(callable $filter): array;
 
-    public function findFolderInfo(FolderUuid $userId): array;
+    /**
+     * @param callable(QueryBuilder): QueryBuilder $filter
+     *
+     * @return array<int, array{
+     *     id: string,
+     *     level: int,
+     *     name: string,
+     *     type: string,
+     *     published: bool,
+     *     createdAt: DateTimeImmutable,
+     *     updatedAt: DateTimeImmutable,
+     *  }>
+     */
+    public function getFoldersQuery(callable $filter): array;
+
+    /**
+     * @param callable(QueryBuilder): QueryBuilder $filter
+     */
+    public function getClosestParentFolderQuery(callable $filter): ?string;
+//    ===========================
+//    ===========================
+
+
+
+
+
+
+
+
+
+
 
     /**
      * @param UserUuid[] $ids
@@ -59,13 +99,6 @@ interface FolderRepositoryInterface
     public function getAvailableFoldersIdsForUser(UserUuid $userId, bool $published = null): array;
 
     public function getSharedFoldersIdsForUser(UserUuid $userId, bool $published = null): array;
-
-    public function getAvailableFoldersForUser(
-        UserUuid $userId,
-        bool $includeTasks = false,
-        bool $published = null,
-        string $search = ''
-    ): array;
 
     public function getRootWorkspaceFolderForUser(UserUuid $userId);
 

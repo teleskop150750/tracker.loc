@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Tracker\Task\Infrastructure\Lumen;
 
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Modules\Tracker\Task\Application\Command\CreateTask\CreateTaskCommandHandler;
 use Modules\Tracker\Task\Application\Command\DeleteTask\DeleteTaskCommandHandler;
@@ -12,16 +13,16 @@ use Modules\Tracker\Task\Application\Command\TaskAddFile\TaskAddFileCommandHandl
 use Modules\Tracker\Task\Application\Command\TaskRemoveFile\TaskRemoveFileCommandHandler;
 use Modules\Tracker\Task\Application\Command\UpdateTask\UpdateTaskCommandHandler;
 use Modules\Tracker\Task\Application\Query\DownloadFile\DownloadFileQueryHandler;
-use Modules\Tracker\Task\Application\Query\GetAssignedTasksForMe\GetAssignedTasksForMeQueryHandler;
-use Modules\Tracker\Task\Application\Query\GetAvailableTasks\GetAvailableTasksQueryHandler;
-use Modules\Tracker\Task\Application\Query\GetGanttAssignedTasksForMe\GetGanttAssignedTasksForMeQueryHandler;
-use Modules\Tracker\Task\Application\Query\GetGanttTasksCreatedByMe\GetGanttTasksCreatedByMeQueryHandler;
-use Modules\Tracker\Task\Application\Query\GetRelationshipsForTasks\GetRelationshipsForTasksQueryHandler;
-use Modules\Tracker\Task\Application\Query\GetSharedGanttTasksForMe\GetSharedGanttTasksForMeQueryHandler;
+use Modules\Tracker\Task\Application\Query\GetFolderMeTasks\GetFolderMeTasksQueryHandler;
+use Modules\Tracker\Task\Application\Query\GetFolderSharedTasks\GetFolderSharedTasksQueryHandler;
+use Modules\Tracker\Task\Application\Query\GetFolderTasks\GetFolderTasksQueryHandler;
 use Modules\Tracker\Task\Application\Query\GetTask\GetTaskQueryHandler;
-use Modules\Tracker\Task\Application\Query\GetTasksCreatedByMe\GetTasksCreatedByMeQueryHandler;
-use Modules\Tracker\Task\Application\Query\GetWorkspaceGanttTasksForMe\GetWorkspaceGanttTasksForMeQueryHandler;
-use Modules\Tracker\Task\Application\Query\SearchTasks\SearchTasksQueryHandler;
+use Modules\Tracker\Task\Application\Query\GetTasks\GetTasksQueryHandler;
+use Modules\Tracker\Task\Application\Query\GetTasksAuthor\GetTasksAuthorQueryHandler;
+use Modules\Tracker\Task\Application\Query\GetTasksExecutor\GetTasksExecutorQueryHandler;
+use Modules\Tracker\Task\Application\Query\GetTasksUnassembled\GetTasksUnassembledQueryHandler;
+use Modules\Tracker\Task\Domain\Entity\Task\Events\NewExecutorEvent;
+use Modules\Tracker\Task\Domain\Entity\Task\Events\NewExecutorHandler;
 use Modules\Tracker\Task\Domain\Repository\FileRepositoryInterface;
 use Modules\Tracker\Task\Domain\Repository\TaskRelationshipRepositoryInterface;
 use Modules\Tracker\Task\Domain\Repository\TaskRepositoryInterface;
@@ -46,19 +47,30 @@ class TaskServiceProvider extends ServiceProvider
         $this->app->tag(TaskRemoveFileCommandHandler::class, 'command_handler');
 
         $this->app->tag(GetTaskQueryHandler::class, 'query_handler');
-        $this->app->tag(SearchTasksQueryHandler::class, 'query_handler');
-        $this->app->tag(GetAvailableTasksQueryHandler::class, 'query_handler');
-        $this->app->tag(GetTasksCreatedByMeQueryHandler::class, 'query_handler');
-        $this->app->tag(GetTasksCreatedByMeQueryHandler::class, 'query_handler');
-        $this->app->tag(GetAssignedTasksForMeQueryHandler::class, 'query_handler');
+        $this->app->tag(GetTasksQueryHandler::class, 'query_handler');
+        $this->app->tag(GetTasksAuthorQueryHandler::class, 'query_handler');
+        $this->app->tag(GetTasksExecutorQueryHandler::class, 'query_handler');
+        $this->app->tag(GetTasksUnassembledQueryHandler::class, 'query_handler');
+        $this->app->tag(GetFolderMeTasksQueryHandler::class, 'query_handler');
+        $this->app->tag(GetFolderSharedTasksQueryHandler::class, 'query_handler');
+        $this->app->tag(GetFolderTasksQueryHandler::class, 'query_handler');
+//        $this->app->tag(SearchTasksQueryHandler::class, 'query_handler');
+//        $this->app->tag(GetTasksCreatedByMeQueryHandler::class, 'query_handler');
+//        $this->app->tag(GetTasksCreatedByMeQueryHandler::class, 'query_handler');
+//        $this->app->tag(GetAssignedTasksForMeQueryHandler::class, 'query_handler');
 
-        $this->app->tag(GetWorkspaceGanttTasksForMeQueryHandler::class, 'query_handler');
-        $this->app->tag(GetGanttTasksCreatedByMeQueryHandler::class, 'query_handler');
-        $this->app->tag(GetGanttAssignedTasksForMeQueryHandler::class, 'query_handler');
-        $this->app->tag(GetSharedGanttTasksForMeQueryHandler::class, 'query_handler');
+//        $this->app->tag(GetWorkspaceGanttTasksForMeQueryHandler::class, 'query_handler');
+//        $this->app->tag(GetGanttTasksCreatedByMeQueryHandler::class, 'query_handler');
+//        $this->app->tag(GetGanttAssignedTasksForMeQueryHandler::class, 'query_handler');
+//        $this->app->tag(GetSharedGanttTasksForMeQueryHandler::class, 'query_handler');
 
-        $this->app->tag(GetRelationshipsForTasksQueryHandler::class, 'query_handler');
+//        $this->app->tag(GetRelationshipsForTasksQueryHandler::class, 'query_handler');
 
         $this->app->tag(DownloadFileQueryHandler::class, 'query_handler');
+    }
+
+    public function boot(): void
+    {
+        Event::listen(NewExecutorEvent::class, NewExecutorHandler::class);
     }
 }

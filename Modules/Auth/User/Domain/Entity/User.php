@@ -22,7 +22,6 @@ use Modules\Auth\User\Domain\Entity\ValueObject\UserPhone;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserPost;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;
 use Modules\Shared\Domain\AggregateRoot;
-use Modules\Shared\Domain\ValueObject\Identity\UUID;
 use Modules\Shared\Infrastructure\Doctrine\Traits\TimestampableEntity;
 use Modules\Tracker\Folder\Domain\Entity\Folder\Folder;
 use Modules\Tracker\Task\Domain\Entity\Task\Task;
@@ -34,7 +33,7 @@ class User extends AggregateRoot
 
     #[Id]
     #[Column(name: 'id', type: 'user_uuid')]
-    protected UUID $uuid;
+    protected UserUuid $uuid;
 
     #[Embedded(class: UserEmail::class, columnPrefix: false)]
     protected UserEmail $email;
@@ -97,9 +96,6 @@ class User extends AggregateRoot
         $this->folders = new ArrayCollection();
     }
 
-    /**
-     * @noinspection SenselessMethodDuplicationInspection
-     */
     public function getUuid(): UserUuid
     {
         return $this->uuid;

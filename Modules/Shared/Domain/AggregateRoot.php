@@ -4,18 +4,13 @@ declare(strict_types=1);
 
 namespace Modules\Shared\Domain;
 
-use Modules\Shared\Domain\ValueObject\Identity\UUID;
+use Modules\Shared\Domain\ValueObject\Identity\UUIDInterface;
 
-class AggregateRoot
+abstract class AggregateRoot implements AggregateRootInterface
 {
-    protected UUID $uuid;
+    abstract public function getUuid(): UUIDInterface;
 
-    public function getUuid(): UUID
-    {
-        return $this->uuid;
-    }
-
-    public function isEqualTo(self $aggregateRoot): bool
+    public function isEqualTo(AggregateRootInterface $aggregateRoot): bool
     {
         return $this->getUuid()->getId() === $aggregateRoot->getUuid()->getId();
     }

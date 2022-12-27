@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Auth\User\Infrastructure\Repository;
 
+use App\Exceptions\HttpException;
 use Modules\Auth\User\Domain\Entity\User;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserEmail;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;
@@ -26,7 +27,7 @@ class UserRepository extends AbstractDoctrineRepository implements UserRepositor
         $user = $this->findOrNull($id);
 
         if (!$user) {
-            throw new UserNotFoundException('Пользователь не найден');
+            throw new UserNotFoundException('Пользователь не найден', 404, 404);
         }
 
         return $user;

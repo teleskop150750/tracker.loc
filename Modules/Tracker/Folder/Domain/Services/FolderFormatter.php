@@ -11,21 +11,46 @@ use Modules\Tracker\Task\Domain\Services\TaskFormatter;
 
 class FolderFormatter
 {
-    private $folders = [];
+    /**
+     * @var array<int, array{
+     *     id: string,
+     *     level: int,
+     *     createdAt: \DateTimeImmutable,
+     *     updatedAt: \DateTimeImmutable,
+     *     name: string,
+     *     type: string,
+     *     published: bool,
+     *  }>
+     */
+    private array $folders;
 
+    /**
+     * @param array<int, array{
+     *     id: string,
+     *     level: int,
+     *     createdAt: \DateTimeImmutable,
+     *     updatedAt: \DateTimeImmutable,
+     *     name: string,
+     *     type: string,
+     *     published: bool,
+     *  }> $folders
+     */
     public function __construct(array $folders)
     {
         $this->folders = $folders;
     }
 
-//    /**
-//     * @param Folder[] $folders
-//     */
-//    public static function makeFromEntityList(array $folders = []): static
-//    {
-//        return new static($folders);
-//    }
-
+    /**
+     * @param array<int, array{
+     *     id: string,
+     *     level: int,
+     *     createdAt: \DateTimeImmutable,
+     *     updatedAt: \DateTimeImmutable,
+     *     name: string,
+     *     type: string,
+     *     published: bool,
+     *  }> $folders
+     */
     public static function makeFromArray(array $folders = []): static
     {
         return new static($folders);
@@ -120,6 +145,15 @@ class FolderFormatter
         $tree = [];
 
         foreach ($this->folders as $item) {
+            if (!isset($item['parentId']) && isset($item['parent'])) {
+                $item['parentId'] = $item['parent'] ? $item['parent']['id'] : null;
+                unset($item['parent']);
+            }
+
+            if (!isset($item['parentId'])) {
+                $item['parentId'] = null;
+            }
+
             $hashTable[$item['id']] = $item;
             $hashIds[$item['id']] = $item['id'];
             $hashTable[$item['id']]['children'] = [];
@@ -143,23 +177,31 @@ class FolderFormatter
         return $this;
     }
 
+    /**
+     * @param array<int, mixed> $initPath
+     * @return $this
+     */
     public function formatTree(array $initPath = []): static
     {
-        $this->folders = $this->formatTreeProcess($this->folders, $initPath, []);
+        $this->folders = $this->formatTreeProcess($this->folders, $initPath);
 
         return $this;
     }
 
-    public function formatPath(array $init = []): static
+    /**
+     * @param array<int, string> $init
+     * @return $this
+     */
+    public function generatePath(array $init = []): static
     {
-        $this->folders = $this->formatPathProcess($this->folders, $init);
+        $this->folders = $this->generatePathProcess($this->folders, $init);
 
         return $this;
     }
 
     public function treeToList(): static
     {
-        $this->folders = $this->treeToItemsProcess($this->folders);
+        $this->folders = $this->treeToListProcess($this->folders);
 
         return $this;
     }
@@ -197,6 +239,10 @@ class FolderFormatter
         return $this;
     }
 
+    /**
+     * @param array<int, mixed> $folder
+     * @return array<int, mixed>
+     */
     public function formatDQLFolder(array $folder): array
     {
         $key = isset($folder['0']['descendant']) ? 'descendant' : 'ancestor';
@@ -223,64 +269,57 @@ class FolderFormatter
         return $result;
     }
 
-    private function formatTreeProcess(
-        array &$items,
-        array $path = [],
-        array $shareUsers = [],
-        array $allSharedUsers = []
-    ): array {
+    /**
+     * @param array<int, mixed>  $items
+     * @param array<int, string> $path
+     *
+     * @return array<int, mixed>
+     */
+    private function formatTreeProcess(array &$items, array $path = []): array
+    {
         foreach ($items as &$item) {
-            $initShareUsers = $item['sharedUsers'];
-            $accSharedUsers = [...$shareUsers, ...$item['sharedUsers']];
-            $accAllSharedUsers = Arr::values(
-                Arr::keyBy([...$allSharedUsers, ...$item['sharedUsers'], $item['author']], 'id')
-            );
-
             $item['path'] = $path;
-            $item['sharedUsers'] = $initShareUsers;
-            $item['inheritSharedUsers'] = $accSharedUsers;
-            $item['allInheritSharedUsers'] = $accAllSharedUsers;
             $accPath = [...$path, $item['name']];
 
             if (\count($item['children']) > 0) {
-                $item['children'] = $this->formatTreeProcess(
-                    $item['children'],
-                    $accPath,
-                    $accSharedUsers,
-                    $accAllSharedUsers
-                );
+                $item['children'] = $this->formatTreeProcess($item['children'], $accPath);
             }
         }
 
         return $items;
     }
 
-    private function formatPathProcess(
-        array &$items,
-        array $path = [],
-    ): array {
+    /**
+     * @param array<int, mixed>  $items
+     * @param array<int, string> $path
+     *
+     * @return array<int, string>
+     */
+    private function generatePathProcess(array &$items, array $path = []): array
+    {
         foreach ($items as &$item) {
             $item['path'] = $path;
             $accPath = [...$path, $item['name']];
 
             if (\count($item['children']) > 0) {
-                $item['children'] = $this->formatPathProcess(
-                    $item['children'],
-                    $accPath,
-                );
+                $item['children'] = $this->generatePathProcess($item['children'], $accPath);
             }
         }
 
         return $items;
     }
 
-    private function treeToItemsProcess(array $tree): array
+    /**
+     * @param array<int, mixed> $tree
+     * @return array<int, mixed>
+     */
+    private function treeToListProcess(array $tree): array
     {
         $result = [];
 
         foreach ($tree as $item) {
             if (\count($item['children']) > 0) {
-                $result = [...$result, ...$this->treeToItemsProcess($item['children'])];
+                $result = [...$result, ...$this->treeToListProcess($item['children'])];
             }
 
             unset($item['children']);

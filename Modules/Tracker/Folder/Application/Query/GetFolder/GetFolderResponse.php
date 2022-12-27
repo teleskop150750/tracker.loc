@@ -9,7 +9,7 @@ use Modules\Shared\Application\Query\QueryResponseInterface;
 class GetFolderResponse implements QueryResponseInterface
 {
     /**
-     * @param array<int, mixed> $folder
+     * @param array<string, mixed> $folder
      */
     public function __construct(
         private readonly array $folder
@@ -17,7 +17,7 @@ class GetFolderResponse implements QueryResponseInterface
     }
 
     /**
-     * @param array<int, mixed> $folder
+     * @param array<string, mixed> $folder
      */
     public static function fromArray(array $folder): static
     {

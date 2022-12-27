@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace Modules\Shared\Domain\ValueObject\Identity;
 
 use Modules\Shared\Domain\ValueObject\Util\Util;
-use Modules\Shared\Domain\ValueObject\ValueObjectInterface;
 use Ramsey\Uuid\Nonstandard\Uuid as RamseyUuid;
 use Webmozart\Assert\Assert;
 use Webmozart\Assert\InvalidArgumentException;
 
-abstract class UUID implements \Stringable, ValueObjectInterface
+abstract class UUID implements UUIDInterface
 {
     private string $id;
 
@@ -66,7 +65,7 @@ abstract class UUID implements \Stringable, ValueObjectInterface
         return $this->__toString() === $valueObject->__toString();
     }
 
-    public function isNotEqualTo(self $valueObject): bool
+    public function isNotEqualTo(UUIDInterface $valueObject): bool
     {
         return !$this->isEqualTo($valueObject);
     }
@@ -74,7 +73,7 @@ abstract class UUID implements \Stringable, ValueObjectInterface
     /**
      * @throws InvalidArgumentException
      */
-    public function mustBeEqualTo(self $id): void
+    public function mustBeEqualTo(UUIDInterface $id): void
     {
         Assert::true($this->isEqualTo($id), 'Is not same id');
     }
@@ -82,7 +81,7 @@ abstract class UUID implements \Stringable, ValueObjectInterface
     /**
      * @throws InvalidArgumentException
      */
-    public function mustNotBeEqualTo(self $id): void
+    public function mustNotBeEqualTo(UUIDInterface $id): void
     {
         Assert::true($this->isNotEqualTo($id), 'Is same id');
     }

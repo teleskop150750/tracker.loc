@@ -6,12 +6,7 @@ namespace Modules\Shared\Domain;
 
 interface AggregateRootInterface
 {
-    /**
-     * @return mixed
-     *
-     * @noinspection PhpMissingReturnTypeInspection
-     */
-    public function getId();
+    public function getUuid();
 
     public function isEqualTo(self $aggregateRoot): bool;
 }

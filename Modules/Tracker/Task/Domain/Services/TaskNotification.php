@@ -13,7 +13,7 @@ class TaskNotification
     public function sendNotificationOfTaskAssignment(User $user, Task $task): void
     {
         $data = ['name' => $user->getFullName()->getFullName(), 'taskId' => $task->getUuid()->getId()];
-        Mail::send('mail.notification-of-task-assignment', $data, static function ($message) use ($user): void {
+        Mail::send('mail.new-executor', $data, static function ($message) use ($user): void {
             $message->to($user->getEmail()->toNative(), $user->getFullName()->getFullName())
                 ->subject('Поставлена задача');
         });

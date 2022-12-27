@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Tracker\Task\Infrastructure\Repository;
 
 use App\Support\Arr;
+use Doctrine\ORM\AbstractQuery;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\Query\Expr\Join;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;
@@ -29,17 +30,100 @@ class TaskRepository extends AbstractDoctrineRepository implements TaskRepositor
     }
 
     /**
-     * @throws TaskNotFoundException
+     * {@inheritdoc}
      */
-    public function find(TaskUuid $id): Task
+    public function getTask(callable $filter): Task
     {
-        $task = $this->repository(Task::class)->findOneBy(['uuid' => $id->getId()]);
+        $em = $this->entityManager();
+        $qb = $em->createQueryBuilder();
 
-        if (!$task) {
-            throw new TaskNotFoundException('Задача не найдена');
+        $qb = $qb->select('t', 'a', 'e', 'f')
+            ->from(Task::class, 't')
+            ->join('t.author', 'a')
+            ->join('t.folders', 'f')
+            ->leftJoin('t.executors', 'e');
+
+        $qb = $filter($qb);
+
+        $response = $qb->getQuery()->getOneOrNullResult();
+
+        if (!$response) {
+            throw new TaskNotFoundException('Задача не найдена', 404, 404);
         }
 
-        return $task;
+        return $response;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getTaskQuery(callable $filter): array
+    {
+        $em = $this->entityManager();
+        $qb = $em->createQueryBuilder();
+
+        $qb = $qb->select(
+            't',
+            'PARTIAL a.{uuid,createdAt,updatedAt,email.value,emailVerifiedAt.value,fullName.firstName,fullName.lastName,fullName.patronymic,avatar.value,phone.value,department.value,post.value}',
+            'PARTIAL e.{uuid,createdAt,updatedAt,email.value,emailVerifiedAt.value,fullName.firstName,fullName.lastName,fullName.patronymic,avatar.value,phone.value,department.value,post.value}',
+            'f',
+        )
+            ->from(Task::class, 't')
+            ->join('t.author', 'a')
+            ->join('t.folders', 'f')
+            ->leftJoin('t.executors', 'e');
+
+        $qb = $filter($qb);
+
+        $response = $qb->getQuery()->getOneOrNullResult(AbstractQuery::HYDRATE_ARRAY);
+
+        if (!$response) {
+            throw new TaskNotFoundException('Задача не найдена', 404, 404);
+        }
+
+        return $this->formatArray($response);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getTasks(callable $filter): array
+    {
+        $em = $this->entityManager();
+        $qb = $em->createQueryBuilder();
+        $qb = $qb->select('t')
+            ->from(Task::class, 't')
+            ->distinct()
+            ->join('t.author', 'a')
+            ->leftJoin('t.executors', 'e')
+            ->orderBy('t.endDate.value', 'DESC');
+
+        $qb = $filter($qb);
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getTasksQuery(callable $filter): array
+    {
+        $em = $this->entityManager();
+        $qb = $em->createQueryBuilder();
+        $qb = $qb->select(
+            'PARTIAL t.{uuid, createdAt, updatedAt, published.value, name.value, startDate.value, endDate.value, status.value, importance.value}',
+            'PARTIAL a.{uuid, createdAt, updatedAt, email.value, emailVerifiedAt.value, fullName.firstName, fullName.lastName, fullName.patronymic, avatar.value, phone.value, department.value, post.value}',
+            'PARTIAL e.{uuid, createdAt, updatedAt, email.value, emailVerifiedAt.value, fullName.firstName, fullName.lastName, fullName.patronymic, avatar.value, phone.value, department.value, post.value}',
+        )
+            ->from(Task::class, 't')
+            ->join('t.author', 'a')
+            ->leftJoin('t.executors', 'e')
+            ->orderBy('t.endDate.value', 'DESC');
+
+        $qb = $filter($qb);
+        $response = $qb->getQuery()->getArrayResult();
+
+        return $this->formatArray($response);
     }
 
     public function findOrNull(TaskUuid $id): ?Task
@@ -64,6 +148,9 @@ class TaskRepository extends AbstractDoctrineRepository implements TaskRepositor
         return $this->repository(Task::class)->findBy($criteria, $orderBy, $limit, $offset);
     }
 
+    /**
+     * @return array<int, mixed>
+     */
     public function getTasksCreatedByUser(UserUuid $id): array
     {
         $em = $this->entityManager();
@@ -73,10 +160,10 @@ class TaskRepository extends AbstractDoctrineRepository implements TaskRepositor
             ->leftJoin('t.executors', 'e')
             ->leftJoin('t.author', 'a')
             ->where('a.uuid = :id')
-            ->setParameter(':id', $id->getId())
             ->AndWhere('t.published.value = :published')
-            ->setParameter(':published', true)
             ->orderBy('t.endDate.value', 'DESC')
+            ->setParameter(':id', $id->getId())
+            ->setParameter(':published', true)
             ->distinct();
         $result = $queryBuilder->getQuery()->getArrayResult();
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Tracker\Task\Domain\Repository;
 
+use Doctrine\ORM\QueryBuilder;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;
 use Modules\Tracker\Task\Domain\Entity\Task\Task;
 use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskUuid;
@@ -16,9 +17,37 @@ interface TaskRepositoryInterface
     public function remove(Task $task): void;
 
     /**
+     * @param callable(QueryBuilder): QueryBuilder $filter
+     *
      * @throws TaskNotFoundException
      */
-    public function find(TaskUuid $id): Task;
+    public function getTask(callable $filter): Task;
+
+    /**
+     * @param callable(QueryBuilder): QueryBuilder $filter
+     *
+     * @return array<string, mixed>
+     *
+     * @throws TaskNotFoundException
+     */
+    public function getTaskQuery(callable $filter): array;
+
+    /**
+     * @param callable(QueryBuilder): QueryBuilder $filter
+     *
+     * @return Task[]
+     */
+    public function getTasks(callable $filter): array;
+
+    /**
+     * @param callable(QueryBuilder): QueryBuilder $filter
+     *
+     * @return array<int, mixed>
+     */
+    public function getTasksQuery(callable $filter): array;
+//    ===============================
+//    ===============================
+//    ===============================
 
     public function findOrNull(TaskUuid $id): ?Task;
 

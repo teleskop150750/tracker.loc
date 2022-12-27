@@ -18,7 +18,6 @@ use Doctrine\ORM\Mapping\OneToMany;
 use Illuminate\Validation\ValidationException;
 use Modules\Auth\User\Domain\Entity\User;
 use Modules\Shared\Domain\AggregateRoot;
-use Modules\Shared\Domain\ValueObject\Identity\UUID;
 use Modules\Shared\Infrastructure\Doctrine\Traits\TimestampableEntity;
 use Modules\Tracker\Folder\Domain\Entity\Folder\Folder;
 use Modules\Tracker\Task\Domain\Entity\File\File;
@@ -30,7 +29,6 @@ use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskPublished;
 use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskStartDate;
 use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskStatus;
 use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskUuid;
-use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskWasStarted;
 use Modules\Tracker\Task\Domain\Entity\TaskRelationship\TaskRelationship;
 
 #[Entity]
@@ -40,13 +38,10 @@ class Task extends AggregateRoot
 
     #[Id]
     #[Column(name: 'id', type: 'task_uuid')]
-    protected UUID $uuid;
+    protected TaskUuid $uuid;
 
     #[Embedded(class: TaskPublished::class, columnPrefix: false)]
     protected TaskPublished $published;
-
-    #[Embedded(class: TaskWasStarted::class, columnPrefix: false)]
-    protected TaskWasStarted $wasStarted;
 
     #[Embedded(class: TaskName::class, columnPrefix: false)]
     protected TaskName $name;
@@ -70,24 +65,35 @@ class Task extends AggregateRoot
     #[JoinColumn(name: 'author_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
     private User $author;
 
-    #[ManyToOne(targetEntity: Folder::class, inversedBy: 'tasks')]
-    #[JoinColumn(name: 'folder_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
-    private null|Folder $folder;
+    /**
+     * @var Collection<int, Folder>
+     */
+    #[ManyToMany(targetEntity: Folder::class, mappedBy: 'tasks')]
+    #[JoinTable(name: 'folder_task')]
+    private Collection $folders;
 
-    /** @var Collection<int, TaskRelationship> */
+    /**
+     * @var Collection<int, TaskRelationship>
+     */
     #[OneToMany(mappedBy: 'left', targetEntity: TaskRelationship::class, cascade: ['persist', 'remove'])]
     private Collection $taskRelationships;
 
-    /** @var Collection<int, TaskRelationship> */
+    /**
+     * @var Collection<int, TaskRelationship>
+     */
     #[OneToMany(mappedBy: 'right', targetEntity: TaskRelationship::class, cascade: ['persist', 'remove'])]
     private Collection $inverseTaskRelationships;
 
-    /** @var Collection<int, User> */
+    /**
+     * @var Collection<int, User>
+     */
     #[ManyToMany(targetEntity: User::class, mappedBy: 'assignedTasks')]
     #[JoinTable(name: 'task_executor')]
     private Collection $executors;
 
-    /** @var Collection<int, File> */
+    /**
+     * @var Collection<int, File>
+     */
     #[OneToMany(mappedBy: 'task', targetEntity: File::class)]
     private Collection $files;
 
@@ -97,7 +103,6 @@ class Task extends AggregateRoot
         User $author,
         TaskStartDate $startDate,
         TaskEndDate $endDate,
-        Folder $folder,
         TaskStatus $status,
         TaskImportance $importance
     ) {
@@ -107,15 +112,15 @@ class Task extends AggregateRoot
         $this->assertDate($startDate, $endDate);
         $this->startDate = $startDate;
         $this->endDate = $endDate;
+        $this->setStatus($status);
+        $this->setImportance($importance);
         $this->description = TaskDescription::fromNative('');
+        $this->published = TaskPublished::fromNative(true);
         $this->taskRelationships = new ArrayCollection();
         $this->inverseTaskRelationships = new ArrayCollection();
         $this->executors = new ArrayCollection();
-        $this->folder = $folder;
-        $this->published = TaskPublished::fromNative(true);
-        $this->wasStarted = TaskWasStarted::fromNative(true);
-        $this->setStatus($status);
-        $this->setImportance($importance);
+        $this->folders = new ArrayCollection();
+        $this->files = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -123,9 +128,6 @@ class Task extends AggregateRoot
         return (string) $this->uuid;
     }
 
-    /**
-     * @noinspection SenselessMethodDuplicationInspection
-     */
     public function getUuid(): TaskUuid
     {
         return $this->uuid;
@@ -139,16 +141,6 @@ class Task extends AggregateRoot
     public function setPublished(TaskPublished $published): void
     {
         $this->published = $published;
-    }
-
-    public function getWasStarted(): TaskWasStarted
-    {
-        return $this->wasStarted;
-    }
-
-    public function setWasStarted(TaskWasStarted $wasStarted): void
-    {
-        $this->wasStarted = $wasStarted;
     }
 
     public function getName(): TaskName
@@ -294,28 +286,44 @@ class Task extends AggregateRoot
 //        }
 //    }
 
-    public function getFolder(): ?Folder
+    /**
+     * @return Collection<int, Folder>
+     */
+    public function getFolders(): Collection
     {
-        return $this->folder;
+        return $this->folders;
     }
 
-    public function setFolder(Folder $folder): void
+    public function addFolder(Folder $folder): void
     {
-        if ($this->folder->isEqualTo($folder)) {
-            return;
+        foreach ($this->executors as $item) {
+            if ($item->isEqualTo($folder)) {
+                return;
+            }
         }
 
-        $this->removeFolder();
-        $this->folder = $folder;
+        $this->folders->add($folder);
         $folder->addTask($this);
     }
 
-    public function removeFolder(): void
+    public function removeFolder(Folder $folder): void
     {
-        if ($this->folder) {
-            $this->folder->removeTask($this);
-            $this->folder = null;
+        $removed = false;
+
+        foreach ($this->executors as $key => $item) {
+            if ($item->isEqualTo($folder)) {
+                $this->executors->remove($key);
+                $removed = true;
+
+                break;
+            }
         }
+
+        if (false === $removed) {
+            return;
+        }
+
+        $folder->removeTask($this);
     }
 
     /**

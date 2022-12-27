@@ -9,4 +9,6 @@ use Modules\Auth\User\Domain\Entity\User;
 interface UserFetcherInterface
 {
     public function getAuthUser(): User;
+
+    public function getAuthUserOrNull(): ?User;
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Tracker\Folder\Domain\Services;
 
+use App\Exceptions\HttpException;
 use Modules\Tracker\Folder\Domain\Entity\Folder\Folder;
 use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderAccess;
 use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderType;
@@ -160,12 +161,15 @@ class UpdateFolderAccess
         }
     }
 
+    /**
+     * @throws HttpException
+     */
     private function getParent(): Folder
     {
         $parent = $this->folder->getParent();
 
         if (!$parent) {
-            throw new \Exception('Родителя нет');
+            throw new HttpException('Родитель не найден', 400, 400);
         }
 
         return $parent;

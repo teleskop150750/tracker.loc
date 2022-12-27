@@ -7,65 +7,36 @@ namespace Modules\Tracker\Task\Domain\Services;
 use Illuminate\Validation\ValidationException;
 use Modules\Tracker\Task\Domain\Entity\Task\Task;
 use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskStatus;
-use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskWasStarted;
 use Modules\Tracker\Task\Domain\Entity\TaskRelationship\TaskRelationship;
 use Modules\Tracker\Task\Domain\Entity\TaskRelationship\ValueObject\TaskRelationshipType;
 
 class UpdateTaskStatusService
 {
-    private Task $task;
-
-    public function __construct(Task $task)
-    {
-        $this->task = $task;
-    }
-
-    public static function make(Task $task): static
-    {
-        return new static($task);
-    }
-
-    public function updateStatus(TaskStatus $status): void
+    public function updateStatus(Task $task, TaskStatus $status): void
     {
         $inWorkStatus = TaskStatus::fromNative(TaskStatus::IN_WORK);
-        $doneStatus = TaskStatus::fromNative(TaskStatus::DONE);
-        $currentStatus = $this->task->getStatus();
+        $currentStatus = $task->getStatus();
 
         if ($currentStatus->sameValueAs($status)) {
             return;
         }
 
         if ($status->sameValueAs($inWorkStatus)) {
-            $this->setInWorkStatus($inWorkStatus);
+            $this->setInWorkStatus($task, $inWorkStatus);
 
             return;
         }
 
-        if ($status->sameValueAs($doneStatus)) {
-            $this->setDoneStatus($doneStatus);
-
-            return;
-        }
-
-        $this->task->setStatus($status);
+        $task->setStatus($status);
     }
 
-    private function setInWorkStatus(TaskStatus $status): void
+    private function setInWorkStatus(Task $task, TaskStatus $status): void
     {
         $relationships = [
             ...$this->filterRelations(
-                $this->getRelations(),
+                $this->getRelations($task),
                 [TaskRelationshipType::fromNative(TaskRelationshipType::END_START)],
                 [
-                    TaskStatus::fromNative(TaskStatus::DONE),
-                    TaskStatus::fromNative(TaskStatus::CANCELLED),
-                ],
-            ),
-            ...$this->filterRelations(
-                $this->getRelations(),
-                [TaskRelationshipType::fromNative(TaskRelationshipType::START_START)],
-                [
-                    TaskStatus::fromNative(TaskStatus::IN_WORK),
                     TaskStatus::fromNative(TaskStatus::DONE),
                     TaskStatus::fromNative(TaskStatus::CANCELLED),
                 ],
@@ -76,45 +47,15 @@ class UpdateTaskStatusService
             throw ValidationException::withMessages(['status' => 'Нельзя начать задачу']);
         }
 
-        $this->task->setWasStarted(TaskWasStarted::fromNative(true));
-        $this->task->setStatus($status);
-    }
-
-    private function setDoneStatus(TaskStatus $status): void
-    {
-        $relationships = [
-            ...$this->filterRelations(
-                $this->getRelations(),
-                [TaskRelationshipType::fromNative(TaskRelationshipType::END_END)],
-                [
-                    TaskStatus::fromNative(TaskStatus::DONE),
-                    TaskStatus::fromNative(TaskStatus::CANCELLED),
-                ],
-            ),
-            ...$this->filterRelations(
-                $this->getRelations(),
-                [TaskRelationshipType::fromNative(TaskRelationshipType::START_END)],
-                [
-                    TaskStatus::fromNative(TaskStatus::IN_WORK),
-                    TaskStatus::fromNative(TaskStatus::DONE),
-                    TaskStatus::fromNative(TaskStatus::CANCELLED),
-                ],
-            ),
-        ];
-
-        if (\count($relationships) > 0) {
-            throw ValidationException::withMessages(['status' => 'Нельзя закончить задачу']);
-        }
-
-        $this->task->setStatus($status);
+        $task->setStatus($status);
     }
 
     /**
      * @return TaskRelationship[]
      */
-    private function getRelations(): array
+    private function getRelations(Task $task): array
     {
-        return $this->task->getTaskRelationships()->toArray();
+        return $task->getTaskRelationships()->toArray();
     }
 
     /**

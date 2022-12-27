@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Modules\Auth\User\Application\Command\ForgotPassword;
 
+use Illuminate\Support\Facades\Event;
 use Illuminate\Validation\ValidationException;
+use Modules\Auth\User\Domain\Entity\Events\ResetPasswordEvent;
 use Modules\Auth\User\Domain\Entity\PasswordResets;
 use Modules\Auth\User\Domain\Entity\ValueObject\PasswordToken;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserEmail;
 use Modules\Auth\User\Domain\Repository\PasswordResetsRepositoryInterface;
 use Modules\Auth\User\Domain\Repository\UserRepositoryInterface;
-use Modules\Auth\User\Domain\Services\EmailVerification;
 use Modules\Shared\Application\Command\CommandHandlerInterface;
 
 class ForgotPasswordCommandHandler implements CommandHandlerInterface
@@ -18,7 +19,6 @@ class ForgotPasswordCommandHandler implements CommandHandlerInterface
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly PasswordResetsRepositoryInterface $passwordResetRepository,
-        private readonly EmailVerification $emailVerification,
     ) {
     }
 
@@ -42,6 +42,6 @@ class ForgotPasswordCommandHandler implements CommandHandlerInterface
         $passwordResets = new PasswordResets($userEmail, $token);
         $this->passwordResetRepository->save($passwordResets);
 
-        $this->emailVerification->sendResetPasswordNotification($foundUserByEmail, $token);
+        Event::dispatch(new ResetPasswordEvent($foundUserByEmail, $passwordResets));
     }
 }

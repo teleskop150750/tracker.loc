@@ -24,9 +24,7 @@ use Gedmo\Mapping\Annotation\TreeParent;
 use Gedmo\Tree\Entity\Repository\ClosureTreeRepository;
 use Modules\Auth\User\Domain\Entity\User;
 use Modules\Shared\Domain\AggregateRoot;
-use Modules\Shared\Domain\ValueObject\Identity\UUID;
 use Modules\Shared\Infrastructure\Doctrine\Traits\TimestampableEntity;
-use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderAccess;
 use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderName;
 use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderPublished;
 use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderType;
@@ -41,13 +39,8 @@ class Folder extends AggregateRoot
 {
     use TimestampableEntity;
 
-    protected UUID $uuid;
-
     #[Embedded(class: FolderName::class, columnPrefix: false)]
     protected FolderName $name;
-
-    #[Embedded(class: FolderAccess::class, columnPrefix: false)]
-    protected FolderAccess $access;
 
     #[Embedded(class: FolderType::class, columnPrefix: false)]
     protected FolderType $type;
@@ -89,7 +82,7 @@ class Folder extends AggregateRoot
     /**
      * @var Collection<int, Task>
      */
-    #[OneToMany(mappedBy: 'folder', targetEntity: Task::class)]
+    #[ManyToMany(targetEntity: Task::class, inversedBy: 'folders')]
     private Collection $tasks;
 
     /**
@@ -101,14 +94,12 @@ class Folder extends AggregateRoot
         FolderUuid $uuid,
         FolderName $name,
         User $author,
-        FolderAccess $access,
         FolderType $type
     ) {
         $this->id = $uuid->getId();
         $this->setName($name);
         $this->setAuthor($author);
         $this->name = $name;
-        $this->access = $access;
         $this->type = $type;
         $this->closures = new ArrayCollection();
         $this->children = new ArrayCollection();
@@ -130,16 +121,6 @@ class Folder extends AggregateRoot
     public function getAuthor(): User
     {
         return $this->author;
-    }
-
-    public function getAccess(): FolderAccess
-    {
-        return $this->access;
-    }
-
-    public function setAccess(FolderAccess $access): void
-    {
-        $this->access = $access;
     }
 
     public function getType(): FolderType
@@ -289,7 +270,7 @@ class Folder extends AggregateRoot
         }
 
         $this->tasks->add($task);
-        $task->setFolder($this);
+        $task->addFolder($this);
     }
 
     public function removeTask(Task $task): void

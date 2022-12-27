@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
-use Illuminate\Routing\Exceptions\InvalidSignatureException;
 
 class ValidateSignature
 {
@@ -15,6 +14,10 @@ class ValidateSignature
             return $next($request);
         }
 
-        throw new InvalidSignatureException();
+        return response()->json([
+            'code' => 422,
+            'status' => 'error',
+            'title' => 'Неверная ссылка',
+        ], 422);
     }
 }

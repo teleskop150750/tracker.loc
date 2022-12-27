@@ -14,7 +14,6 @@ class FolderType extends StringLiteral
 {
     public const DEFAULT = 'DEFAULT';
     public const ROOT = 'ROOT';
-    public const PUBLIC_ROOT = 'PUBLIC_ROOT';
 
     #[Column(name: 'type', type: 'string')]
     protected string $value;
@@ -24,7 +23,6 @@ class FolderType extends StringLiteral
         Assert::inArray($value, [
             self::DEFAULT,
             self::ROOT,
-            self::PUBLIC_ROOT,
         ], 'Невалидный тип папки');
 
         parent::__construct($value);

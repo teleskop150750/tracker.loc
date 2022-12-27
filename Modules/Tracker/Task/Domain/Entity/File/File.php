@@ -11,7 +11,6 @@ use Doctrine\ORM\Mapping\Id;
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use Modules\Shared\Domain\AggregateRoot;
-use Modules\Shared\Domain\ValueObject\Identity\UUID;
 use Modules\Shared\Infrastructure\Doctrine\Traits\TimestampableEntity;
 use Modules\Tracker\Task\Domain\Entity\File\ValueObject\FileName;
 use Modules\Tracker\Task\Domain\Entity\File\ValueObject\FileOriginName;
@@ -26,7 +25,7 @@ class File extends AggregateRoot
 
     #[Id]
     #[Column(name: 'id', type: 'file_uuid')]
-    protected UUID $uuid;
+    protected FileUuid $uuid;
 
     #[Embedded(class: FileOriginName::class, columnPrefix: false)]
     protected FileOriginName $originName;
@@ -44,6 +43,11 @@ class File extends AggregateRoot
         $this->task = $task;
         $this->originName = $originName;
         $this->path = $path;
+    }
+
+    public function getUuid(): FileUuid
+    {
+        return $this->uuid;
     }
 
     public function getTask(): Task

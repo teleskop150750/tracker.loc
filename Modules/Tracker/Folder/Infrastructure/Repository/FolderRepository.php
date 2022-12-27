@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Tracker\Folder\Infrastructure\Repository;
 
 use App\Support\Arr;
+use Doctrine\ORM\AbstractQuery;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
@@ -22,46 +23,149 @@ use Modules\Tracker\Folder\Domain\Services\FolderFormatter;
 
 class FolderRepository extends AbstractDoctrineRepository implements FolderRepositoryInterface
 {
-    public function remove(Folder $folder): void
-    {
-        $this->removeEntity($folder);
-    }
-
-    public function find(FolderUuid $id): Folder
-    {
-        $folder = $this->repository(Folder::class)->findOneBy(['id' => $id->getId()]);
-
-        if (!$folder) {
-            throw new FolderNotFoundException('Папка не найдена');
-        }
-
-        return $folder;
-    }
-
-    public function findOrNull(FolderUuid $id): ?Folder
-    {
-        return $this->repository(Folder::class)->findOneBy(['id' => $id->getId()]);
-    }
-
     public function save(Folder $folder): void
     {
         $this->persistEntity($folder);
     }
 
+    public function remove(Folder $folder): void
+    {
+        $this->removeEntity($folder);
+    }
+
     /**
-     * @return Folder[]
+     * {@inheritdoc}
      */
-    public function all(): array
+    public function getFolder(callable $filter): Folder
     {
         $em = $this->entityManager();
         $qb = $em->createQueryBuilder();
 
-        return $qb->select('f')
+        $qb = $qb->select('f', 'a', 'su')
             ->from(Folder::class, 'f')
-            ->orderBy('f.createdAt', 'DESC')
-            ->getQuery()
-            ->getResult();
+            ->join('f.author', 'a')
+            ->leftJoin('f.sharedUsers', 'su');
+
+        $qb = $filter($qb);
+
+        $response = $qb->getQuery()->getOneOrNullResult();
+
+        if (!$response) {
+            throw new FolderNotFoundException('Папка не найдена', 404, 404);
+        }
+
+        return $response;
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getFolderQuery(callable $filter): array
+    {
+        $em = $this->entityManager();
+        $qb = $em->createQueryBuilder();
+
+        $qb = $qb
+            ->distinct()
+            ->select(
+                'f',
+                'PARTIAL a.{uuid,createdAt,updatedAt,email.value,emailVerifiedAt.value,fullName.firstName,fullName.lastName,fullName.patronymic,avatar.value,phone.value,department.value,post.value}',
+                'PARTIAL su.{uuid,createdAt,updatedAt,email.value,emailVerifiedAt.value,fullName.firstName,fullName.lastName,fullName.patronymic,avatar.value,phone.value,department.value,post.value}',
+                'p.id as parentId'
+            )
+            ->from(Folder::class, 'f')
+            ->join('f.author', 'a')
+            ->leftJoin('f.parent', 'p')
+            ->leftJoin('f.sharedUsers', 'su');
+
+        $qb = $filter($qb);
+
+        $response = $qb->getQuery()->getOneOrNullResult(AbstractQuery::HYDRATE_ARRAY);
+
+        if (!$response) {
+            throw new FolderNotFoundException();
+        }
+
+        $response = ['parentId' => $response['parentId'], ...$response[0]];
+        $response = $this->formatArray($response);
+
+        return $this->formatArray($response);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getFolders(callable $filter): array
+    {
+        $em = $this->entityManager();
+        $qb = $em->createQueryBuilder();
+
+        $qb = $qb
+            ->distinct()
+            ->select('f')
+            ->from(Folder::class, 'f')
+            ->join('f.author', 'a')
+            ->leftJoin('f.sharedUsers', 'su');
+
+        $qb = $filter($qb);
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getFoldersQuery(callable $filter): array
+    {
+        $em = $this->entityManager();
+        $qb = $em->createQueryBuilder();
+
+        $qb = $qb
+            ->distinct()
+            ->select(
+                'f',
+                'PARTIAL a.{uuid,email.value,fullName.firstName,fullName.lastName,fullName.patronymic,avatar.value,phone.value,department.value,post.value}',
+                'PARTIAL su.{uuid,email.value,fullName.firstName,fullName.lastName,fullName.patronymic,avatar.value,phone.value,department.value,post.value}',
+                'PARTIAL p.{id}'
+            )
+            ->from(Folder::class, 'f')
+            ->join('f.author', 'a')
+            ->leftJoin('f.parent', 'p')
+            ->leftJoin('f.sharedUsers', 'su');
+
+        $qb = $filter($qb);
+
+        $response = $qb->getQuery()->getArrayResult();
+
+        return $this->formatArray($response);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getClosestParentFolderQuery(callable $filter): ?string
+    {
+        $em = $this->entityManager();
+        $qb = $em->createQueryBuilder();
+
+        $qb->select('PARTIAL c.{id}', 'PARTIAL node.{id}')
+            ->from(FolderClosure::class, 'c')
+            ->innerJoin('c.ancestor', 'node')
+            ->setMaxResults(1)
+            ->orderBy('node.level', 'DESC');
+
+        $qb = $filter($qb);
+
+        $response = $qb->getQuery()->getOneOrNullResult(Query::HYDRATE_ARRAY);
+
+        if (!$response) {
+            return null;
+        }
+
+        return $response['ancestor']['id'];
+    }
+//    ===========================
+//    ===========================
 
     /**
      * @param FolderUuid[] $ids
@@ -104,7 +208,11 @@ class FolderRepository extends AbstractDoctrineRepository implements FolderRepos
         $em = $this->entityManager();
         $queryBuilder = $em->createQueryBuilder();
 
-        return $queryBuilder->select('f', 'a', 'su')
+        return $queryBuilder->select(
+            'f',
+            'PARTIAL a.{uuid,createdAt,updatedAt,email.value,emailVerifiedAt.value,fullName.firstName,fullName.lastName,fullName.patronymic,avatar.value,phone.value,department.value,post.value}',
+            'PARTIAL su.{uuid,createdAt,updatedAt,email.value,emailVerifiedAt.value,fullName.firstName,fullName.lastName,fullName.patronymic,avatar.value,phone.value,department.value,post.value}',
+        )
             ->from(Folder::class, 'f')
             ->join('f.author', 'a')
             ->leftJoin('f.sharedUsers', 'su')
@@ -143,15 +251,13 @@ class FolderRepository extends AbstractDoctrineRepository implements FolderRepos
             ->getChildrenQueryBuilder($node, $direct, $sortByField, $direction, $includeNode);
         $qb
             ->select('c', 'node')
-            ->orderBy('node.createdAt', 'DESC')
-        ;
+            ->orderBy('node.createdAt', 'DESC');
 
         if ($includeTasks) {
             $qb->addSelect('t', 'e')
                 ->leftJoin('node.tasks', 't')
                 ->leftJoin('t.executors', 'e')
-                ->addOrderBy('t.endDate.value', 'DESC')
-            ;
+                ->addOrderBy('t.endDate.value', 'DESC');
         }
 
         if ($includeSharedUsers) {
@@ -183,8 +289,7 @@ class FolderRepository extends AbstractDoctrineRepository implements FolderRepos
             ->addSelect('a', 'su')
             ->join('node.author', 'a')
             ->leftJoin('node.sharedUsers', 'su')
-            ->orderBy('node.createdAt', 'DESC')
-        ;
+            ->orderBy('node.createdAt', 'DESC');
         $result = $qb->getQuery()->getResult();
 
         if ($node) {
@@ -212,8 +317,7 @@ class FolderRepository extends AbstractDoctrineRepository implements FolderRepos
             $qb->select('c, node')
                 ->from(FolderClosure::class, 'c')
                 ->innerJoin('c.descendant', 'node')
-                ->orderBy('node.createdAt', 'DESC')
-            ;
+                ->orderBy('node.createdAt', 'DESC');
 
             $qb->where($where);
 
@@ -337,7 +441,7 @@ class FolderRepository extends AbstractDoctrineRepository implements FolderRepos
 
         return FolderFormatter::makeFromArray($allFolders)
             ->listToTree()
-            ->formatPath(['Shared'])
+            ->generatePath(['Shared'])
             ->treeToList()
             ->getFolders();
     }
@@ -376,38 +480,8 @@ class FolderRepository extends AbstractDoctrineRepository implements FolderRepos
         return Arr::unique([...$sharedFoldersIds, ...$publicIds]);
     }
 
-    public function getAvailableFoldersForUser(
-        UserUuid $userId,
-        bool $includeTasks = false,
-        bool $published = null,
-        string $search = '',
-    ): array {
-        return [
-            ...$this->getWorkspaceFoldersForUser($userId, $includeTasks, $published, $search),
-            ...$this->getFoldersSharedForUser($userId, $includeTasks, $published, $search),
-        ];
-    }
-
-    public function findFolderInfo(FolderUuid $id): array
+    private function getFolderProcess(callable $filter): QueryBuilder
     {
-        $idRaw = $id->getId();
-        $folders = $this->getParentFolders([$idRaw], true);
-        $folders = FolderFormatter::makeFromArray($folders)
-            ->listToTree()
-            ->formatTree()
-            ->treeToList()
-            ->getFolders();
-
-        if (0 === \count($folders)) {
-            return [];
-        }
-
-        $folder = Arr::shift($folders);
-        $parent = \count($folders) > 0 ? Arr::shift($folders) : [];
-
-        $folder['parentFolder'] = $parent;
-
-        return $folder;
     }
 
 //    public function searchFolders(string $search = '', array $ids = []): array
@@ -459,8 +533,7 @@ class FolderRepository extends AbstractDoctrineRepository implements FolderRepos
             ->from(FolderClosure::class, 'c')
             ->innerJoin('c.descendant', 'node')
             ->where('c.ancestor = :id')
-            ->setParameter(':id', $rootId)
-        ;
+            ->setParameter(':id', $rootId);
 
         $result = $queryBuilder->getQuery()->getArrayResult();
 
@@ -480,8 +553,7 @@ class FolderRepository extends AbstractDoctrineRepository implements FolderRepos
             ->from(Folder::class, 'f')
             ->join('f.sharedUsers', 'su')
             ->where('su.uuid = :user')
-            ->setParameter('user', $userId->getId())
-        ;
+            ->setParameter('user', $userId->getId());
 
         $result = $qb->getQuery()
             ->getArrayResult();
@@ -500,8 +572,7 @@ class FolderRepository extends AbstractDoctrineRepository implements FolderRepos
             ->join('f.author', 'a')
             ->andWhere('f.type.value = :type')
             ->setParameter('type', FolderType::PUBLIC_ROOT)
-            ->orderBy('f.createdAt', 'DESC')
-        ;
+            ->orderBy('f.createdAt', 'DESC');
 
         if (0 !== \count($excludeIds)) {
             $queryBuilder
@@ -567,8 +638,7 @@ class FolderRepository extends AbstractDoctrineRepository implements FolderRepos
             ->innerJoin('node.author', 'a')
             ->leftJoin('node.sharedUsers', 'su')
             ->setParameter('ids', $ids)
-            ->orderBy('node.createdAt', 'DESC')
-        ;
+            ->orderBy('node.createdAt', 'DESC');
 
         if ($includeTasks) {
             $qb = null !== $published
@@ -578,8 +648,7 @@ class FolderRepository extends AbstractDoctrineRepository implements FolderRepos
             $qb->leftJoin('t.executors', 'e')
                 ->leftJoin('t.author', 'ta')
                 ->addSelect('t', 'ta', 'e')
-                ->addOrderBy('t.endDate.value', 'DESC')
-            ;
+                ->addOrderBy('t.endDate.value', 'DESC');
         }
 
         if ($search) {
@@ -612,8 +681,7 @@ class FolderRepository extends AbstractDoctrineRepository implements FolderRepos
             ->from(FolderClosure::class, 'c')
             ->innerJoin('c.descendant', 'node')
             ->where('c.ancestor IN (:ids)')
-            ->setParameter('ids', $ids)
-        ;
+            ->setParameter('ids', $ids);
 
         if (null !== $published) {
             $qb = $qb->AndWhere('node.published.value = :published')

@@ -33,20 +33,53 @@ class TaskRelationshipRepository extends AbstractDoctrineRepository implements T
     }
 
     /**
-     * @param array<string, mixed>       $criteria
+     * @param array<string, mixed> $criteria
      * @param null|array<string, string> $orderBy
-     * @param null|int                   $limit
-     * @param null|int                   $offset
+     * @param null|int $limit
+     * @param null|int $offset
      *
      * @return User[]
      */
     public function findBy(
-        array $criteria,
-        ?array $orderBy = null,
+        array    $criteria,
+        ?array   $orderBy = null,
         null|int $limit = null,
         null|int $offset = null
-    ): array {
+    ): array
+    {
         return $this->repository(User::class)->findBy($criteria, $orderBy, $limit, $offset);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getTasksRelationships(callable $filter): array
+    {
+        $em = $this->entityManager();
+        $qb = $em->createQueryBuilder();
+        $qb = $qb->select('tr')
+            ->from(TaskRelationship::class, 'tr');
+
+        $qb = $filter($qb);
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getTasksRelationshipsQuery(callable $filter): array
+    {
+        $em = $this->entityManager();
+        $qb = $em->createQueryBuilder();
+        $qb = $qb->select('tr')
+            ->from(TaskRelationship::class, 'tr');
+
+        $qb = $filter($qb);
+
+        $response = $qb->getQuery()->getArrayResult();
+
+        return $this->formatArray($response);
     }
 
     /**
@@ -64,7 +97,7 @@ class TaskRelationshipRepository extends AbstractDoctrineRepository implements T
             ->where('r.published.value = :published')
             ->setParameter('published', true)
             ->andWhere('tr.type.value IN (:types)')
-            ->setParameter('types', [TaskRelationshipType::END_START, TaskRelationshipType::END_END])
+            ->setParameter('types', [TaskRelationshipType::END_START])
             ->andWhere('r.status.value IN (:statuses)')
             ->setParameter('statuses', [TaskStatus::NEW, TaskStatus::IN_WORK, TaskStatus::WAITING])
             ->andWhere('r.endDate.value < :today')

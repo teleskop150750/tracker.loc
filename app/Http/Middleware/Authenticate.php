@@ -4,37 +4,28 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use Illuminate\Contracts\Auth\Factory as Auth;
+use App\Exceptions\HttpException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Modules\Shared\Domain\Security\UserFetcherInterface;
 
 class Authenticate
 {
-    /**
-     * The authentication guard factory instance.
-     *
-     * @var \Illuminate\Contracts\Auth\Factory
-     */
-    protected $auth;
+    private UserFetcherInterface $userFetcher;
 
-    /**
-     * Create a new middleware instance.
-     */
-    public function __construct(Auth $auth)
+    public function __construct(UserFetcherInterface $userFetcher)
     {
-        $this->auth = $auth;
+        $this->userFetcher = $userFetcher;
     }
 
     /**
-     * Handle an incoming request.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @param null|string              $guard
-     *
-     * @return mixed
+     * @return JsonResponse|mixed
+     * @throws HttpException
      */
-    public function handle($request, \Closure $next, $guard = null)
+    public function handle(Request $request, \Closure $next): mixed
     {
-        if ($this->auth->guard($guard)->guest()) {
-            return response('Unauthorized.', 401);
+        if (!$this->userFetcher->getAuthUserOrNull()) {
+            throw new HttpException('Не авторизован', 401, 401);
         }
 
         return $next($request);

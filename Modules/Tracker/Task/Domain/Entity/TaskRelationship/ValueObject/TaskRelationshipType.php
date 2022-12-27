@@ -13,31 +13,9 @@ use Webmozart\Assert\Assert;
 class TaskRelationshipType extends StringLiteral
 {
     public const END_START = 'END_START';
-    public const START_START = 'START_START';
-    public const END_END = 'END_END';
-    public const START_END = 'START_END';
 
     public const LABEL_KEY = 'LABEL';
     public const TYPE_KEY = 'TYPE';
-
-    public const TYPE_INFO = [
-        self::END_START => [
-            self::TYPE_KEY => self::END_START,
-            self::LABEL_KEY => 'Конец-начало',
-        ],
-        self::START_START => [
-            self::TYPE_KEY => self::START_START,
-            self::LABEL_KEY => 'Начало-начало',
-        ],
-        self::END_END => [
-            self::TYPE_KEY => self::END_END,
-            self::LABEL_KEY => 'Конец-конец',
-        ],
-        self::START_END => [
-            self::TYPE_KEY => self::START_END,
-            self::LABEL_KEY => 'Начало-конец',
-        ],
-    ];
 
     #[Column(name: 'type', type: 'string')]
     protected string $value;
@@ -46,10 +24,7 @@ class TaskRelationshipType extends StringLiteral
     {
         Assert::inArray($value, [
             self::END_START,
-            self::START_START,
-            self::END_END,
-            self::START_END,
-        ], 'Невалидный тип доступа: '.$value);
+        ], 'Невалидный тип связи: '.$value);
 
         parent::__construct($value);
     }
@@ -57,18 +32,5 @@ class TaskRelationshipType extends StringLiteral
     public function getType(): string
     {
         return $this->value;
-    }
-
-    public function getLabel(): string
-    {
-        return self::TYPE_INFO[$this->value][self::LABEL_KEY];
-    }
-
-    /**
-     * @return string[][]
-     */
-    public function getInfo(): array
-    {
-        return self::TYPE_INFO;
     }
 }

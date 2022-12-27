@@ -13,7 +13,6 @@ use Modules\Shared\Infrastructure\Lumen\ValidationExceptionNormalizer;
 use Modules\Tracker\Task\Application\Command\TaskAddFile\TaskAddFileCommand;
 use Modules\Tracker\Task\Application\Command\TaskRemoveFile\TaskRemoveFileCommand;
 use Modules\Tracker\Task\Application\Query\DownloadFile\DownloadFileQuery;
-use Modules\Tracker\Task\Domain\Entity\File\ValueObject\FileUuid;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -32,7 +31,7 @@ class TaskFileController extends ApiController
                 ]
             );
 
-            $fileId = FileUuid::generateRandom()->getId();
+            $fileId = (new \Modules\Tracker\Task\Domain\Entity\File\ValueObject\FileUuid())->generateRandom()->getId();
             $data = [
                 'file' => $request->file('file'),
                 'taskId' => $taskId,

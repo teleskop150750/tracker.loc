@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Tracker\Folder\Domain\Services;
 
+use App\Exceptions\HttpException;
 use Modules\Tracker\Folder\Domain\Entity\Folder\Folder;
 use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderPublished;
 use Modules\Tracker\Folder\Domain\Repository\FolderRepositoryInterface;
@@ -53,10 +54,13 @@ class UpdateFolderPublished
         }
     }
 
+    /**
+     * @throws HttpException
+     */
     private function getParentPublished(Folder $folder): bool
     {
         if (!$folder->getParent()) {
-            throw new \Exception('Родителя нет');
+            throw new HttpException('Родитель не найден', 400, 400);
         }
 
         return $folder->getParent()->getPublished()->toNative();

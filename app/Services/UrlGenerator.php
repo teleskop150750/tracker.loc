@@ -39,7 +39,6 @@ class UrlGenerator extends \Laravel\Lumen\Routing\UrlGenerator
             $parameters += ['expires' => $this->availableAt($expiration)];
         }
 
-        ksort($parameters);
         $key = \call_user_func($this->keyResolver);
 
         return $this->route(
@@ -51,12 +50,40 @@ class UrlGenerator extends \Laravel\Lumen\Routing\UrlGenerator
         );
     }
 
+    public function signed(string $name, array $parameters = [], \DateInterval|\DateTimeInterface|int $expiration = null, bool $absolute = true): array
+    {
+        $parameters = Arr::wrap($parameters);
+
+        if (\array_key_exists('signature', $parameters)) {
+            throw new \InvalidArgumentException(
+                '"Signature" is a reserved parameter when generating signed routes. Please rename your route parameter.'
+            );
+        }
+
+        if ($expiration) {
+            $parameters += ['expires' => $this->availableAt($expiration)];
+        }
+
+        $key = \call_user_func($this->keyResolver);
+
+        $parameters += [
+            'signature' => hash_hmac('sha256', $this->route($name, $parameters, $absolute), $key),
+        ];
+
+        return $parameters;
+    }
+
     /**
      * Create a temporary signed route URL for a named route.
      */
     public function temporarySignedRoute(string $name, \DateInterval|\DateTimeInterface|int $expiration, array $parameters = [], bool $absolute = true): string
     {
         return $this->signedRoute($name, $parameters, $expiration, $absolute);
+    }
+
+    public function temporarySigned(string $name, \DateInterval|\DateTimeInterface|int $expiration, array $parameters = [], bool $absolute = true): array
+    {
+        return $this->signed($name, $parameters, $expiration, $absolute);
     }
 
     /**

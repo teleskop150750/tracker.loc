@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Modules\Shared\Infrastructure\Security;
 
+use App\Exceptions\HttpException;
 use Illuminate\Http\Request;
 use Modules\Auth\User\Domain\Entity\User;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;
-use Modules\Auth\User\Domain\Repository\UserNotFoundException;
 use Modules\Auth\User\Domain\Repository\UserRepositoryInterface;
 use Modules\Shared\Domain\Security\UserFetcherInterface;
-use Webmozart\Assert\Assert;
 
 class UserFetcher implements UserFetcherInterface
 {
@@ -23,17 +22,36 @@ class UserFetcher implements UserFetcherInterface
     }
 
     /**
-     * @throws UserNotFoundException
+     * @throws UnauthorizedException
      */
     public function getAuthUser(): User
     {
-        if (null === $this->user) {
-            $id = $this->response->header('user-id');
-            $user = $this->userRepository->find(UserUuid::fromNative($id));
-            Assert::notNull($user, 'Current user not found check security access list');
-            $this->user = $user;
-        }
+        try {
+            if (null === $this->user) {
+                $id = $this->response->header('user-id', '');
+                $user = $this->userRepository->find(UserUuid::fromNative($id));
 
-        return $this->user;
+                $this->user = $user;
+            }
+
+            return $this->user;
+        } catch (\Exception) {
+            throw new UnauthorizedException('Ошибка авторизации', 401, 401);
+        }
+    }
+
+    public function getAuthUserOrNull(): ?User
+    {
+        try {
+            if (null === $this->user) {
+                $id = $this->response->header('user-id', '');
+                $user = $this->userRepository->findOrNull(UserUuid::fromNative($id));
+                $this->user = $user;
+            }
+
+            return $this->user;
+        } catch (\Exception) {
+            return null;
+        }
     }
 }

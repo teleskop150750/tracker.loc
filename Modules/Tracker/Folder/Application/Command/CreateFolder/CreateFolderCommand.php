@@ -14,11 +14,10 @@ class CreateFolderCommand implements CommandInterface
     public function __construct(
         public readonly string $id,
         public readonly string $name,
-        public readonly string $access,
         public readonly array $sharedUsers = [],
         public readonly string|null $parent = null,
-        public readonly string|null $author = null,
         public readonly string|null $type = null,
+        public readonly string|null $author = null,
     ) {
     }
 
@@ -28,13 +27,12 @@ class CreateFolderCommand implements CommandInterface
     public static function createFromArray(array $data): static
     {
         return new static(
-            $data['folderId'],
+            $data['id'],
             $data['name'],
-            $data['access'],
             $data['sharedUsers'] ?? [],
             $data['parent'] ?? null,
-            $data['author'] ?? null,
             $data['type'] ?? null,
+            $data['author'] ?? null,
         );
     }
 }
