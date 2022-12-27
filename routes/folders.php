@@ -24,6 +24,4 @@ $router->group(['middleware' => 'auth'], function () use ($router): void {
     $router->put('folders/{id}', 'Modules\Tracker\Folder\Infrastructure\Api\FoldersController@update');
 
     // $router->post('delete-folder', 'Modules\Tracker\Folder\Infrastructure\Api\DeleteFolderController@__invoke');
-    $router->get('workspace-folders-for-me', 'Modules\Tracker\Folder\Infrastructure\Api\GetWorkspaceFoldersForMeController@__invoke');
-    $router->get('shared-folders-for-me', 'Modules\Tracker\Folder\Infrastructure\Api\GetSharedFoldersForMeController@__invoke');
 });

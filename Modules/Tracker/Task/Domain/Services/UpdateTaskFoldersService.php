@@ -23,7 +23,6 @@ class UpdateTaskFoldersService
 
     /**
      * @param Folder[] $folders
-     * @return void
      */
     public function updateFolders(array $folders = []): void
     {

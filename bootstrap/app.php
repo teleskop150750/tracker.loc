@@ -158,7 +158,7 @@ $app->router->group(['prefix' => '/api/v1'], function ($router): void {
 
     require __DIR__.'/../routes/user.php';
 
-    require __DIR__ . '/../routes/folders.php';
+    require __DIR__.'/../routes/folders.php';
 
     require __DIR__.'/../routes/tasks.php';
 

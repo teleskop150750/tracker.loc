@@ -12,7 +12,6 @@ use Modules\Auth\User\Domain\Repository\UserNotFoundException;
 use Modules\Auth\User\Domain\Repository\UserRepositoryInterface;
 use Modules\Shared\Application\Command\CommandHandlerInterface;
 use Modules\Shared\Domain\Security\UserFetcherInterface;
-use Modules\Tracker\Folder\Application\Query\GetFolder\GetFolderQuery;
 use Modules\Tracker\Folder\Domain\Entity\Folder\Folder;
 use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderName;
 use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderType;

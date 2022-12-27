@@ -5,10 +5,7 @@ declare(strict_types=1);
 namespace Modules\Tracker\Task\Domain\Services;
 
 use Modules\Tracker\Task\Domain\Entity\Task\Task;
-use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskEndDate;
 use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskStartDate;
-use Modules\Tracker\Task\Domain\Entity\TaskRelationship\TaskRelationship;
-use Modules\Tracker\Task\Domain\Entity\TaskRelationship\ValueObject\TaskRelationshipType;
 
 class UpdateTaskStartDateService
 {

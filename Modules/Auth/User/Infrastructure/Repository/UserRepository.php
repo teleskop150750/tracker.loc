@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Modules\Auth\User\Infrastructure\Repository;
 
-use App\Exceptions\HttpException;
 use Modules\Auth\User\Domain\Entity\User;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserEmail;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;

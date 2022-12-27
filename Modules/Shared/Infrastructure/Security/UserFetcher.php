@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Modules\Shared\Infrastructure\Security;
 
-use App\Exceptions\HttpException;
 use Illuminate\Http\Request;
 use Modules\Auth\User\Domain\Entity\User;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;

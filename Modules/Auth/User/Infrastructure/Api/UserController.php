@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Modules\Auth\User\Infrastructure\Api;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Illuminate\Validation\ValidationException;
 use Modules\Auth\User\Application\Query\GetUsers\GetUsersQuery;
 use Modules\Shared\Infrastructure\Lumen\ApiController;
 use Symfony\Component\HttpFoundation\JsonResponse;

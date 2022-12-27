@@ -28,10 +28,6 @@ class UpdateTaskRelationsService
         $this->addNewDepends($task, $depends);
     }
 
-    /**
-     * @param Task $task
-     * @param array $affects
-     */
     public function updateAffects(Task $task, array $affects): void
     {
         $this->removeAffects($task, $affects);
@@ -39,7 +35,6 @@ class UpdateTaskRelationsService
     }
 
     /**
-     * @param Task $task
      * @param Task[] $depends
      */
     private function removeDepends(Task $task, array $depends): void
@@ -59,7 +54,6 @@ class UpdateTaskRelationsService
     }
 
     /**
-     * @param Task $task
      * @param Task[] $depends
      */
     private function addNewDepends(Task $task, array $depends): void
@@ -84,7 +78,6 @@ class UpdateTaskRelationsService
     }
 
     /**
-     * @param Task $task
      * @param Task[] $affects
      */
     private function removeAffects(Task $task, array $affects): void
@@ -104,7 +97,6 @@ class UpdateTaskRelationsService
     }
 
     /**
-     * @param Task $task
      * @param Task[] $affects
      */
     private function addNewAffects(Task $task, array $affects): void

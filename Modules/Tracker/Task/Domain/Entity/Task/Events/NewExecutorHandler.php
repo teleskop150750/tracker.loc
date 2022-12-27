@@ -12,7 +12,7 @@ class NewExecutorHandler
     {
         $data = [
             'name' => $event->user->getFullName()->getFullName(),
-            'task' => $event->task->getName()->toNative()
+            'task' => $event->task->getName()->toNative(),
         ];
 
         Mail::send('mail.new-executor', $data, static function ($message) use ($event): void {

@@ -15,17 +15,6 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class Handler extends ExceptionHandler
 {
-    /**
-     * A list of the exception types that should not be reported.
-     *
-     * @var array
-     */
-    protected $dontReport = [
-        AuthorizationException::class,
-        HttpException::class,
-        ModelNotFoundException::class,
-        ValidationException::class,
-    ];
 
     /**
      * Report or log an exception.
@@ -50,7 +39,7 @@ class Handler extends ExceptionHandler
     {
         if ($request->wantsJson()) {
             if ($exception instanceof ValidationException) {
-                 return response()->json([
+                return response()->json([
                     'code' => 422,
                     'status' => 'error',
                     'title' => $exception->getMessage(),

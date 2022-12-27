@@ -6,7 +6,6 @@ namespace Modules\Auth\User\Infrastructure\Api;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 use Modules\Auth\User\Application\Command\RegisterUser\RegisterUserCommand;
 use Modules\Shared\Infrastructure\Lumen\ApiController;
 use Symfony\Component\HttpFoundation\JsonResponse;

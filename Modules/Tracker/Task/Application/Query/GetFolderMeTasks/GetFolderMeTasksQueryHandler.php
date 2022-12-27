@@ -179,6 +179,7 @@ class GetFolderMeTasksQueryHandler implements QueryHandlerInterface
 
     /**
      * @param array<int, mixed> $folders
+     *
      * @return array<int, mixed>
      */
     private function filterFolders(array $folders): array
@@ -190,6 +191,7 @@ class GetFolderMeTasksQueryHandler implements QueryHandlerInterface
 
     /**
      * @param array<int, mixed> $folders
+     *
      * @return string[]
      */
     private function getTasksIds(array $folders): array
@@ -199,16 +201,14 @@ class GetFolderMeTasksQueryHandler implements QueryHandlerInterface
         return Arr::flatten($tasks);
     }
 
-
     /**
-     * @param string[] $taskIds
+     * @param string[]          $taskIds
      * @param array<int, mixed> $folder
      *
      * @return array<int, mixed>
      */
     private function getTasks(array $taskIds, array $folder): array
     {
-
         $folderIds = Arr::pluck($folder, 'id');
 
         $filter = static function (QueryBuilder $qb) use ($taskIds, $folderIds): QueryBuilder {

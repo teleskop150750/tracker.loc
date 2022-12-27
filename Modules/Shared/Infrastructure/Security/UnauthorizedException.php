@@ -8,5 +8,4 @@ use App\Exceptions\HttpException;
 
 class UnauthorizedException extends HttpException
 {
-
 }

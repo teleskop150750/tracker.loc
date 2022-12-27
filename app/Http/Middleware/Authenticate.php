@@ -20,6 +20,7 @@ class Authenticate
 
     /**
      * @return JsonResponse|mixed
+     *
      * @throws HttpException
      */
     public function handle(Request $request, \Closure $next): mixed

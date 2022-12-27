@@ -117,8 +117,6 @@ abstract class AbstractDoctrineRepository
             $result[$k] = $v;
         }
 
-        $result = Arr::undot($result);
-
-        return $result;
+        return Arr::undot($result);
     }
 }

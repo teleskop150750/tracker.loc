@@ -8,8 +8,6 @@ use DateTimeImmutable;
 use Doctrine\ORM\QueryBuilder;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;
 use Modules\Tracker\Folder\Domain\Entity\Folder\Folder;
-use Modules\Tracker\Folder\Domain\Entity\Folder\ValueObject\FolderUuid;
-use Modules\Tracker\Task\Domain\Entity\Task\Task;
 
 interface FolderRepositoryInterface
 {
@@ -57,16 +55,6 @@ interface FolderRepositoryInterface
     public function getClosestParentFolderQuery(callable $filter): ?string;
 //    ===========================
 //    ===========================
-
-
-
-
-
-
-
-
-
-
 
     /**
      * @param UserUuid[] $ids
