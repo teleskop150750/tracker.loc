@@ -6,6 +6,7 @@ namespace Modules\Tracker\Folder\Domain\Repository;
 
 use DateTimeImmutable;
 use Doctrine\ORM\QueryBuilder;
+use Modules\Auth\User\Domain\Entity\User;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;
 use Modules\Tracker\Folder\Domain\Entity\Folder\Folder;
 
@@ -53,6 +54,11 @@ interface FolderRepositoryInterface
      * @param callable(QueryBuilder): QueryBuilder $filter
      */
     public function getClosestParentFolderQuery(callable $filter): ?string;
+
+    /**
+     * @return string[]
+     */
+    public function getAvailableFoldersIds(User $user): array;
 //    ===========================
 //    ===========================
 

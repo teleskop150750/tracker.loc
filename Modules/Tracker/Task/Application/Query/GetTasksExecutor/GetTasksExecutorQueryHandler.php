@@ -99,7 +99,7 @@ class GetTasksExecutorQueryHandler implements QueryHandlerInterface
 
         $folders = $this->folderRepository->getFoldersQuery($filter);
 
-        return Arr::map($folders, static fn ($el) => $el['id']);
+        return Arr::pluck($folders, 'id');
     }
 
     /**

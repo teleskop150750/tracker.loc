@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Tracker\Task\Domain\Repository;
 
 use Doctrine\ORM\QueryBuilder;
+use Modules\Auth\User\Domain\Entity\User;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;
 use Modules\Tracker\Task\Domain\Entity\Task\Task;
 use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskUuid;
@@ -45,6 +46,11 @@ interface TaskRepositoryInterface
      * @return array<int, mixed>
      */
     public function getTasksQuery(callable $filter): array;
+
+    /**
+     * @return string[]
+     */
+    public function getAvailableTasksIds(User $user): array;
 //    ===============================
 //    ===============================
 //    ===============================

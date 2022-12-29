@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\Tracker\Task\Application\Query\GetTasksUnassembled;
+namespace Modules\Tracker\Task\Application\Query\GetTasksIndefinite;
 
 use App\Support\Arr;
 use Doctrine\ORM\Query\Expr\Join;
@@ -12,7 +12,7 @@ use Modules\Shared\Domain\Security\UserFetcherInterface;
 use Modules\Tracker\Folder\Domain\Repository\FolderRepositoryInterface;
 use Modules\Tracker\Task\Domain\Repository\TaskRepositoryInterface;
 
-class GetTasksUnassembledQueryHandler implements QueryHandlerInterface
+class GetTasksIndefiniteQueryHandler implements QueryHandlerInterface
 {
     public function __construct(
         private readonly FolderRepositoryInterface $folderRepository,
@@ -21,12 +21,12 @@ class GetTasksUnassembledQueryHandler implements QueryHandlerInterface
     ) {
     }
 
-    public function __invoke(GetTasksUnassembledQuery $command): GetTasksUnassembledResponse
+    public function __invoke(GetTasksIndefiniteQuery $command): GetTasksIndefiniteResponse
     {
         $tasks = $this->getTasks();
         $tasks = $this->tasksFormat($tasks);
 
-        return GetTasksUnassembledResponse::fromArray($tasks);
+        return GetTasksIndefiniteResponse::fromArray($tasks);
     }
 
     /**
@@ -61,51 +61,50 @@ class GetTasksUnassembledQueryHandler implements QueryHandlerInterface
         });
     }
 
+    /**
+     * @return string[]
+     */
     private function getTasksIds(): array
     {
-        $disabledIds = $this->getFolderIds();
+        $foldersIds = $this->getAvailableFoldersIds();
         $auth = $this->userFetcher->getAuthUser();
 
-        $filter = static function (QueryBuilder $qb) use ($auth, $disabledIds): QueryBuilder {
+        $filter = static function (QueryBuilder $qb) use ($auth, $foldersIds): QueryBuilder {
             return $qb->andWhere($qb->expr()->orX(
+                $qb->expr()->eq('a.uuid', ':userId'),
                 $qb->expr()->eq('e.uuid', ':userId'),
             ))
-                ->join(
+                ->leftJoin(
                     't.folders',
                     'f',
                     Join::WITH,
                     $qb->expr()->orX(
-                        $qb->expr()->notIn('f.id', ':folderIds')
+                        $qb->expr()->in('f.id', ':folderIds')
                     )
                 )
                 ->select('PARTIAL t.{uuid}')
+                ->addSelect('PARTIAL f.{id}')
                 ->setParameter('userId', $auth->getUuid()->getId())
-                ->setParameter('folderIds', $disabledIds);
+                ->setParameter('folderIds', $foldersIds);
         };
 
         $response = $this->taskRepository->getTasksQuery($filter);
+        $response = Arr::where($response, static function(array $task) use ($foldersIds) {
+           $ids = Arr::pluck($task['folders'], 'id');
+            return count(array_intersect($ids, $foldersIds)) === 0;
+        });
 
-        return Arr::pluck($response, 'id');
+        return Arr::unique(Arr::pluck($response, 'id'));
     }
 
     /**
      * @return array<int, string>
      */
-    private function getFolderIds(): array
+    private function getAvailableFoldersIds(): array
     {
         $auth = $this->userFetcher->getAuthUser();
 
-        $filter = static function (QueryBuilder $qb) use ($auth) {
-            return $qb->andWhere($qb->expr()->orX(
-                $qb->expr()->eq('a.uuid', ':userId')
-            ))
-                ->select('PARTIAL f.{id}')
-                ->setParameter('userId', $auth->getUuid()->getId());
-        };
-
-        $folders = $this->folderRepository->getFoldersQuery($filter);
-
-        return Arr::map($folders, static fn ($el) => $el['id']);
+        return $this->folderRepository->getAvailableFoldersIds($auth);
     }
 
     /**

@@ -51,8 +51,8 @@ class UpdateTaskCommandHandler implements CommandHandlerInterface
     {
         try {
             $task = $this->getTask($command->id);
-
             $this->updateRelations($task, $command);
+
             $this->updateName($task, $command);
             $this->updateDescription($task, $command);
             $this->updateImportance($task, $command);
@@ -74,6 +74,7 @@ class UpdateTaskCommandHandler implements CommandHandlerInterface
             $depends = $this->getRelationshipsTasks($command->depends);
             $this->updateTaskRelationsService->updateDepends($task, $depends);
         }
+
         if (null !== $command->affects) {
             $affects = $this->getRelationshipsTasks($command->affects);
             $this->updateTaskRelationsService->updateAffects($task, $affects);

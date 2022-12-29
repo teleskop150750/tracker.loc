@@ -72,7 +72,7 @@ class GetFolderTasksQueryHandler implements QueryHandlerInterface
         $calcFoldersKeyed = Arr::keyBy($calcFolders, 'id');
         $orphanFolders = $this->getOrphanFolders($calcFolders);
 
-        $allowedIds = array_diff(Arr::pluck($calcFolders, 'id'), Arr::pluck($orphanFolders, 'id'));
+        $allowedIds = Arr::pluck($calcFolders, 'id');
 
         foreach ($orphanFolders as $orphanFolder) {
             $orphanFolderId = $orphanFolder['id'];
@@ -124,6 +124,7 @@ class GetFolderTasksQueryHandler implements QueryHandlerInterface
         $filter = static function (QueryBuilder $qb) use ($id, $allowedIds): QueryBuilder {
             return $qb->where('c.descendant = :id')
                 ->andWhere('node.id IN (:allowedIds)')
+                ->andWhere('node.id != :id')
                 ->setParameter('allowedIds', $allowedIds)
                 ->setParameter('id', $id);
         };

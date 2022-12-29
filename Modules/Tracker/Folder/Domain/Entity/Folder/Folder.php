@@ -290,7 +290,7 @@ class Folder extends AggregateRoot
             return;
         }
 
-        $task->removeFolder();
+        $task->removeFolder($this);
     }
 
     protected function getId(): ?string

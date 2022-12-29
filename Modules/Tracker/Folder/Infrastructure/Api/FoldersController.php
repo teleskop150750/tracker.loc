@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Modules\Tracker\Folder\Infrastructure\Api;
 
+use Doctrine\DBAL\ConnectionException;
 use Doctrine\ORM\EntityManagerInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Shared\Infrastructure\Lumen\ApiController;
 use Modules\Tracker\Folder\Application\Command\CreateFolder\CreateFolderCommand;
+use Modules\Tracker\Folder\Application\Command\DeleteFolder\DeleteFolderCommand;
 use Modules\Tracker\Folder\Application\Command\UpdateFolder\UpdateFolderCommand;
 use Modules\Tracker\Folder\Application\Query\GetFolder\GetFolderQuery;
 use Modules\Tracker\Folder\Application\Query\GetFolders\GetFoldersQuery;
@@ -28,6 +30,9 @@ class FoldersController extends ApiController
         ]);
     }
 
+    /**
+     * @throws ConnectionException
+     */
     public function create(Request $request, EntityManagerInterface $em): \Symfony\Component\HttpFoundation\JsonResponse
     {
         $conn = $em->getConnection();
@@ -78,6 +83,7 @@ class FoldersController extends ApiController
         $conn = $em->getConnection();
         $conn->beginTransaction();
 
+
         try {
             $folderData = $this->validate(
                 [...$request->all(), 'id' => $id],
@@ -95,6 +101,35 @@ class FoldersController extends ApiController
                 'code' => 200,
                 'status' => 'success',
                 'title' => 'Папка обновлена',
+            ]);
+        } catch (\Exception $exception) {
+            $conn->rollBack();
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * @throws ConnectionException
+     */
+    public function delete(EntityManagerInterface $em, string $id): \Symfony\Component\HttpFoundation\JsonResponse
+    {
+        $conn = $em->getConnection();
+        $conn->beginTransaction();
+
+        try {
+            $folderData = $this->validate(
+                ['id' => $id],
+                ['id' => ['required', 'uuid']]
+            );
+
+            $this->dispatch(DeleteFolderCommand::createFromArray($folderData));
+            $conn->commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'title' => 'Папка удалена',
             ]);
         } catch (\Exception $exception) {
             $conn->rollBack();

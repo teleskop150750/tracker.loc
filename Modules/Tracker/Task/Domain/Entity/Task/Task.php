@@ -310,9 +310,9 @@ class Task extends AggregateRoot
     {
         $removed = false;
 
-        foreach ($this->executors as $key => $item) {
+        foreach ($this->folders as $key => $item) {
             if ($item->isEqualTo($folder)) {
-                $this->executors->remove($key);
+                $this->folders->remove($key);
                 $removed = true;
 
                 break;

@@ -22,6 +22,5 @@ $router->group(['middleware' => 'auth'], function () use ($router): void {
     $router->post('folders', 'Modules\Tracker\Folder\Infrastructure\Api\FoldersController@create');
     $router->get('folders/{id}', 'Modules\Tracker\Folder\Infrastructure\Api\FoldersController@show');
     $router->put('folders/{id}', 'Modules\Tracker\Folder\Infrastructure\Api\FoldersController@update');
-
-    // $router->post('delete-folder', 'Modules\Tracker\Folder\Infrastructure\Api\DeleteFolderController@__invoke');
+    $router->delete('folders/{id}', 'Modules\Tracker\Folder\Infrastructure\Api\FoldersController@delete');
 });

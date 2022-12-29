@@ -7,6 +7,7 @@ namespace Modules\Tracker\Task\Domain\Services;
 use App\Support\Arr;
 use Modules\Tracker\Task\Domain\Entity\Task\Task;
 use Modules\Tracker\Task\Domain\Entity\TaskRelationship\TaskRelationship;
+use Modules\Tracker\Task\Domain\Entity\TaskRelationship\ValueObject\TaskRelationshipType;
 use Modules\Tracker\Task\Domain\Entity\TaskRelationship\ValueObject\TaskRelationshipUuid;
 use Modules\Tracker\Task\Domain\Repository\TaskRelationshipRepositoryInterface;
 
@@ -39,17 +40,10 @@ class UpdateTaskRelationsService
      */
     private function removeDepends(Task $task, array $depends): void
     {
-        $currentRelationships = $task->getInverseTaskRelationships()->toArray();
-        $ids = Arr::map($depends, static function (Task $task): void {
-            $task->getUuid()->getId();
-        });
+        $currentRelationships = $task->getTaskRelationships()->toArray();
 
         foreach ($currentRelationships as $relationship) {
-            $id = $relationship->getLeft()->getUuid()->getId();
-
-            if (!\in_array($id, $ids, true)) {
-                $this->taskRelationshipRepository->remove($relationship);
-            }
+            $this->taskRelationshipRepository->remove($relationship);
         }
     }
 
@@ -58,9 +52,9 @@ class UpdateTaskRelationsService
      */
     private function addNewDepends(Task $task, array $depends): void
     {
-        $currentRelationships = $task->getInverseTaskRelationships()->toArray();
-        $ids = Arr::map($currentRelationships, static function (TaskRelationship $relationship): void {
-            $relationship->getLeft()->getUuid()->getId();
+        $currentRelationships = $task->getTaskRelationships()->toArray();
+        $ids = Arr::map($currentRelationships, static function (TaskRelationship $relationship): string {
+            return $relationship->getRight()->getUuid()->getId();
         });
 
         foreach ($depends as $depend) {
@@ -71,7 +65,9 @@ class UpdateTaskRelationsService
                     TaskRelationshipUuid::generateRandom(),
                     $task,
                     $depend,
+                    TaskRelationshipType::fromNative(TaskRelationshipType::END_START),
                 );
+
                 $this->taskRelationshipRepository->save($relationship);
             }
         }
@@ -82,17 +78,10 @@ class UpdateTaskRelationsService
      */
     private function removeAffects(Task $task, array $affects): void
     {
-        $currentRelationships = $task->getTaskRelationships()->toArray();
-        $ids = Arr::map($affects, static function (Task $task): void {
-            $task->getUuid()->getId();
-        });
+        $currentRelationships = $task->getInverseTaskRelationships()->toArray();
 
         foreach ($currentRelationships as $relationship) {
-            $id = $relationship->getRight()->getUuid()->getId();
-
-            if (!\in_array($id, $ids, true)) {
-                $this->taskRelationshipRepository->remove($relationship);
-            }
+            $this->taskRelationshipRepository->remove($relationship);
         }
     }
 
@@ -103,7 +92,7 @@ class UpdateTaskRelationsService
     {
         $currentRelationships = $task->getInverseTaskRelationships()->toArray();
         $ids = Arr::map($currentRelationships, static function (TaskRelationship $relationship): void {
-            $relationship->getRight()->getUuid()->getId();
+            $relationship->getLeft()->getUuid()->getId();
         });
 
         foreach ($affects as $affect) {
@@ -114,6 +103,7 @@ class UpdateTaskRelationsService
                     TaskRelationshipUuid::generateRandom(),
                     $affect,
                     $task,
+                    TaskRelationshipType::fromNative(TaskRelationshipType::END_START),
                 );
                 $this->taskRelationshipRepository->save($relationship);
             }

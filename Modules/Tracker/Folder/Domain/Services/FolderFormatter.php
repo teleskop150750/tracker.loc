@@ -179,6 +179,7 @@ class FolderFormatter
 
     /**
      * @param array<int, mixed> $initPath
+     *
      * @return $this
      */
     public function formatTree(array $initPath = []): static
@@ -190,6 +191,7 @@ class FolderFormatter
 
     /**
      * @param array<int, string> $init
+     *
      * @return $this
      */
     public function generatePath(array $init = []): static
@@ -241,6 +243,7 @@ class FolderFormatter
 
     /**
      * @param array<int, mixed> $folder
+     *
      * @return array<int, mixed>
      */
     public function formatDQLFolder(array $folder): array
@@ -311,6 +314,7 @@ class FolderFormatter
 
     /**
      * @param array<int, mixed> $tree
+     *
      * @return array<int, mixed>
      */
     private function treeToListProcess(array $tree): array

@@ -33,20 +33,19 @@ class TaskRelationshipRepository extends AbstractDoctrineRepository implements T
     }
 
     /**
-     * @param array<string, mixed> $criteria
+     * @param array<string, mixed>       $criteria
      * @param null|array<string, string> $orderBy
-     * @param null|int $limit
-     * @param null|int $offset
+     * @param null|int                   $limit
+     * @param null|int                   $offset
      *
      * @return User[]
      */
     public function findBy(
-        array    $criteria,
-        ?array   $orderBy = null,
+        array $criteria,
+        ?array $orderBy = null,
         null|int $limit = null,
         null|int $offset = null
-    ): array
-    {
+    ): array {
         return $this->repository(User::class)->findBy($criteria, $orderBy, $limit, $offset);
     }
 

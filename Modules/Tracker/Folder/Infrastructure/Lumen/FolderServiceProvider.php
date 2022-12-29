@@ -29,11 +29,8 @@ class FolderServiceProvider extends ServiceProvider
         $this->app->tag(UpdateFolderCommandHandler::class, 'command_handler');
         $this->app->tag(DeleteFolderCommandHandler::class, 'command_handler');
 
-//        $this->app->tag(SearchFoldersQueryHandler::class, 'query_handler');
-//        $this->app->tag(GetArchiveForMeQueryHandler::class, 'query_handler');
         $this->app->tag(GetSharedFoldersForMeQueryHandler::class, 'query_handler');
         $this->app->tag(GetFoldersQueryHandler::class, 'query_handler');
-//        $this->app->tag(GetWorkspaceFoldersForMeQueryHandler::class, 'query_handler');
         $this->app->tag(GetFolderQueryHandler::class, 'query_handler');
     }
 

@@ -10,6 +10,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Illuminate\Http\Request;
 use Modules\Shared\Infrastructure\Lumen\ApiController;
 use Modules\Tracker\Task\Application\Command\CreateTask\CreateTaskCommand;
+use Modules\Tracker\Task\Application\Command\DeleteTask\DeleteTaskCommand;
 use Modules\Tracker\Task\Application\Command\UpdateTask\UpdateTaskCommand;
 use Modules\Tracker\Task\Application\Query\GetFolderMeTasks\GetFolderMeTasksQuery;
 use Modules\Tracker\Task\Application\Query\GetFolderSharedTasks\GetFolderSharedTasksQuery;
@@ -18,7 +19,7 @@ use Modules\Tracker\Task\Application\Query\GetTask\GetTaskQuery;
 use Modules\Tracker\Task\Application\Query\GetTasks\GetTasksQuery;
 use Modules\Tracker\Task\Application\Query\GetTasksAuthor\GetTasksAuthorQuery;
 use Modules\Tracker\Task\Application\Query\GetTasksExecutor\GetTasksExecutorQuery;
-use Modules\Tracker\Task\Application\Query\GetTasksUnassembled\GetTasksUnassembledQuery;
+use Modules\Tracker\Task\Application\Query\GetTasksIndefinite\GetTasksIndefiniteQuery;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 class TasksController extends ApiController
@@ -59,9 +60,9 @@ class TasksController extends ApiController
         ]);
     }
 
-    public function tasksUnassembled(): JsonResponse
+    public function tasksIndefinite(): JsonResponse
     {
-        $data = $this->ask(GetTasksUnassembledQuery::make())->toArray();
+        $data = $this->ask(GetTasksIndefiniteQuery::make())->toArray();
 
         return response()->json([
             'code' => 200,
@@ -144,7 +145,7 @@ class TasksController extends ApiController
                 [
                     'id' => ['required', 'uuid'],
                     'name' => ['required'],
-                    'folders' => ['array'],
+                    'folders' => ['nullable', 'array'],
                     'status' => ['required'],
                     'importance' => ['required'],
                     'startDate' => ['required'],
@@ -171,6 +172,9 @@ class TasksController extends ApiController
         }
     }
 
+    /**
+     * @throws ConnectionException
+     */
     public function update(Request $request, EntityManagerInterface $em, string $id): JsonResponse
     {
         $conn = $em->getConnection();
@@ -182,7 +186,7 @@ class TasksController extends ApiController
                 [
                     'id' => ['required', 'uuid'],
                     'name' => ['nullable'],
-                    'folders' => ['required', 'array'],
+                    'folders' => ['nullable', 'array'],
                     'status' => ['nullable'],
                     'importance' => ['nullable'],
                     'startDate' => ['nullable'],
@@ -202,6 +206,36 @@ class TasksController extends ApiController
                 'status' => 'success',
                 'title' => 'Задача обновлена',
             ]);
+        } catch (\Exception $exception) {
+            $conn->rollBack();
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * @throws ConnectionException
+     */
+    public function delete(EntityManagerInterface $em, string $id): JsonResponse
+    {
+        $conn = $em->getConnection();
+        $conn->beginTransaction();
+
+        try {
+            $this->validate(
+                ['id' => $id],
+                ['id' => ['required', 'uuid']]
+            );
+
+            $this->dispatch(DeleteTaskCommand::createFromArray(['id' => $id]));
+            $conn->commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'title' => 'Задача удалена',
+            ]);
+
         } catch (\Exception $exception) {
             $conn->rollBack();
 

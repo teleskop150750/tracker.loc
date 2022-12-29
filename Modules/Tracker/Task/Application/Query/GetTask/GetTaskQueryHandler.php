@@ -9,6 +9,7 @@ use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Modules\Shared\Application\Query\QueryHandlerInterface;
 use Modules\Shared\Domain\Security\UserFetcherInterface;
+use Modules\Tracker\Folder\Domain\Repository\FolderRepositoryInterface;
 use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskStatus;
 use Modules\Tracker\Task\Domain\Repository\Exceptions\TaskNotFoundException;
 use Modules\Tracker\Task\Domain\Repository\TaskRelationshipRepositoryInterface;
@@ -17,6 +18,7 @@ use Modules\Tracker\Task\Domain\Repository\TaskRepositoryInterface;
 class GetTaskQueryHandler implements QueryHandlerInterface
 {
     public function __construct(
+        private readonly FolderRepositoryInterface $folderRepository,
         private readonly TaskRepositoryInterface $taskRepository,
         private readonly TaskRelationshipRepositoryInterface $taskRelationshipRepository,
         private readonly UserFetcherInterface $userFetcher,
@@ -47,27 +49,26 @@ class GetTaskQueryHandler implements QueryHandlerInterface
      */
     private function getTask(GetTaskQuery $command): array
     {
-        $auth = $this->userFetcher->getAuthUser();
-        $ids = $this->getAvailableTasksIds();
-        $filter = static function (QueryBuilder $qb) use ($auth, $command, $ids): QueryBuilder {
+        $tasksIds = $this->getAvailableTasksIds();
+        $folderIds = $this->getAvailableFoldersIds();
+
+        $filter = static function (QueryBuilder $qb) use ($command, $tasksIds, $folderIds): QueryBuilder {
             return $qb->andWhere('t.uuid = :id')
-                ->andWhere($qb->expr()->orX(
-                    $qb->expr()->eq('a.uuid', ':userId'),
-                    $qb->expr()->eq('e.uuid', ':userId')
-                ))
                 ->addSelect(
                     'PARTIAL tr.{uuid}',
                     'PARTIAL r.{uuid,createdAt,updatedAt,startDate.value,endDate.value,status.value,importance.value,description.value}',
                     'PARTIAL tir.{uuid}',
                     'PARTIAL l.{uuid,createdAt,updatedAt,startDate.value,endDate.value,status.value,importance.value,description.value}',
+                    'f',
                 )
                 ->leftJoin('t.taskRelationships', 'tr')
-                ->leftJoin('tr.right', 'r', Join::WITH, $qb->expr()->in('r.uuid', ':ids'))
+                ->leftJoin('tr.right', 'r', Join::WITH, $qb->expr()->in('r.uuid', ':tasksIds'))
                 ->leftJoin('t.inverseTaskRelationships', 'tir')
-                ->leftJoin('tir.left', 'l', Join::WITH, $qb->expr()->in('l.uuid', ':ids'))
+                ->leftJoin('tir.left', 'l', Join::WITH, $qb->expr()->in('l.uuid', ':tasksIds'))
+                ->leftJoin('t.folders', 'f', Join::WITH, $qb->expr()->in('f.id', ':folderIds'))
                 ->setParameter('id', $command->id)
-                ->setParameter('ids', $ids)
-                ->setParameter('userId', $auth->getUuid()->getId());
+                ->setParameter('folderIds', $folderIds)
+                ->setParameter('tasksIds', $tasksIds);
         };
 
         $response = $this->taskRepository->getTaskQuery($filter);
@@ -89,18 +90,18 @@ class GetTaskQueryHandler implements QueryHandlerInterface
     private function getAvailableTasksIds(): array
     {
         $auth = $this->userFetcher->getAuthUser();
-        $filter = static function (QueryBuilder $qb) use ($auth): QueryBuilder {
-            return $qb->andWhere($qb->expr()->orX(
-                $qb->expr()->eq('a.uuid', ':userId'),
-                $qb->expr()->eq('e.uuid', ':userId')
-            ))
-                ->select('t')
-                ->setParameter('userId', $auth->getUuid()->getId());
-        };
 
-        $response = $this->taskRepository->getTasksQuery($filter);
+        return $this->taskRepository->getAvailableTasksIds($auth);
+    }
 
-        return Arr::pluck($response, 'id');
+    /**
+     * @return string[]
+     */
+    private function getAvailableFoldersIds(): array
+    {
+        $auth = $this->userFetcher->getAuthUser();
+
+        return $this->folderRepository->getAvailableFoldersIds($auth);
     }
 
     /**

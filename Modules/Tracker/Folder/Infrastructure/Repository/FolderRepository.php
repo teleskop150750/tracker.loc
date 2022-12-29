@@ -11,6 +11,7 @@ use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Gedmo\Exception\InvalidArgumentException;
 use Gedmo\Tree\Entity\MappedSuperclass\AbstractClosure;
+use Modules\Auth\User\Domain\Entity\User;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;
 use Modules\Shared\Infrastructure\Doctrine\AbstractDoctrineRepository;
 use Modules\Tracker\Folder\Domain\Entity\Folder\Folder;
@@ -83,7 +84,7 @@ class FolderRepository extends AbstractDoctrineRepository implements FolderRepos
         $response = $qb->getQuery()->getOneOrNullResult(AbstractQuery::HYDRATE_ARRAY);
 
         if (!$response) {
-            throw new FolderNotFoundException();
+            throw new FolderNotFoundException('Папка не найдена', 404, 404);
         }
 
         $response = ['parentId' => $response['parentId'], ...$response[0]];
@@ -163,6 +164,33 @@ class FolderRepository extends AbstractDoctrineRepository implements FolderRepos
         }
 
         return $response['ancestor']['id'];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getAvailableFoldersIds(User $user): array
+    {
+        $em = $this->entityManager();
+        $qb = $em->createQueryBuilder();
+
+        $qb = $qb
+            ->distinct()
+            ->select('PARTIAL f.{id}')
+            ->from(Folder::class, 'f')
+            ->join('f.author', 'a')
+            ->leftJoin('f.sharedUsers', 'su')
+            ->andWhere($qb->expr()->orX(
+                $qb->expr()->eq('a.uuid', ':userId'),
+                $qb->expr()->eq('su.uuid', ':userId'),
+            ))
+            ->setParameter('userId', $user->getUuid()->getId());
+
+        $response = $qb->getQuery()->getArrayResult();
+
+        $response = $this->formatArray($response);
+
+        return Arr::pluck($response, 'id');
     }
 //    ===========================
 //    ===========================

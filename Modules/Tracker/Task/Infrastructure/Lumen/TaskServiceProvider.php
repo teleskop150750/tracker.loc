@@ -20,7 +20,7 @@ use Modules\Tracker\Task\Application\Query\GetTask\GetTaskQueryHandler;
 use Modules\Tracker\Task\Application\Query\GetTasks\GetTasksQueryHandler;
 use Modules\Tracker\Task\Application\Query\GetTasksAuthor\GetTasksAuthorQueryHandler;
 use Modules\Tracker\Task\Application\Query\GetTasksExecutor\GetTasksExecutorQueryHandler;
-use Modules\Tracker\Task\Application\Query\GetTasksUnassembled\GetTasksUnassembledQueryHandler;
+use Modules\Tracker\Task\Application\Query\GetTasksIndefinite\GetTasksIndefiniteQueryHandler;
 use Modules\Tracker\Task\Domain\Entity\Task\Events\NewExecutorEvent;
 use Modules\Tracker\Task\Domain\Entity\Task\Events\NewExecutorHandler;
 use Modules\Tracker\Task\Domain\Repository\FileRepositoryInterface;
@@ -50,7 +50,7 @@ class TaskServiceProvider extends ServiceProvider
         $this->app->tag(GetTasksQueryHandler::class, 'query_handler');
         $this->app->tag(GetTasksAuthorQueryHandler::class, 'query_handler');
         $this->app->tag(GetTasksExecutorQueryHandler::class, 'query_handler');
-        $this->app->tag(GetTasksUnassembledQueryHandler::class, 'query_handler');
+        $this->app->tag(GetTasksIndefiniteQueryHandler::class, 'query_handler');
         $this->app->tag(GetFolderMeTasksQueryHandler::class, 'query_handler');
         $this->app->tag(GetFolderSharedTasksQueryHandler::class, 'query_handler');
         $this->app->tag(GetFolderTasksQueryHandler::class, 'query_handler');

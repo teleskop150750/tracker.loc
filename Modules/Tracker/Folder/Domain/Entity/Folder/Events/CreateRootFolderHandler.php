@@ -22,7 +22,7 @@ class CreateRootFolderHandler
     public function handle(RegisterUserEvent $event): void
     {
         $folderData = [
-            'folderId' => FolderUuid::generateRandom()->getId(),
+            'id' => FolderUuid::generateRandom()->getId(),
             'name' => FolderName::DEFAULT,
             'type' => FolderType::ROOT,
             'author' => $event->user->getUuid()->getId(),

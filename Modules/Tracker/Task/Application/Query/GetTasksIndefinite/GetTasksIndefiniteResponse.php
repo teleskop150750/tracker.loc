@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Modules\Tracker\Task\Application\Query\GetTasksUnassembled;
+namespace Modules\Tracker\Task\Application\Query\GetTasksIndefinite;
 
 use Modules\Shared\Application\Query\QueryResponseInterface;
 
-class GetTasksUnassembledResponse implements QueryResponseInterface
+class GetTasksIndefiniteResponse implements QueryResponseInterface
 {
     /**
      * @param array<int, mixed> $tasks

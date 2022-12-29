@@ -61,7 +61,7 @@ class GetFoldersQueryHandler implements QueryHandlerInterface
         $calcFoldersKeyed = Arr::keyBy($calcFolders, 'id');
         $orphanFolders = $this->getOrphanFolders($calcFolders);
 
-        $allowedIds = array_diff(Arr::pluck($calcFolders, 'id'), Arr::pluck($orphanFolders, 'id'));
+        $allowedIds = Arr::pluck($calcFolders, 'id');
 
         foreach ($orphanFolders as $orphanFolder) {
             $orphanFolderId = $orphanFolder['id'];
@@ -141,6 +141,7 @@ class GetFoldersQueryHandler implements QueryHandlerInterface
         $filter = static function (QueryBuilder $qb) use ($id, $allowedIds): QueryBuilder {
             return $qb->where('c.descendant = :id')
                 ->andWhere('node.id IN (:allowedIds)')
+                ->andWhere('node.id != :id')
                 ->setParameter('allowedIds', $allowedIds)
                 ->setParameter('id', $id);
         };
@@ -155,17 +156,6 @@ class GetFoldersQueryHandler implements QueryHandlerInterface
     {
         $auth = $this->userFetcher->getAuthUser();
 
-        $filter = static function (QueryBuilder $qb) use ($auth): QueryBuilder {
-            return $qb->andWhere($qb->expr()->orX(
-                $qb->expr()->eq('a.uuid', ':userId'),
-                $qb->expr()->eq('e.uuid', ':userId')
-            ))
-                ->select('PARTIAL t.{uuid}')
-                ->setParameter('userId', $auth->getUuid()->getId());
-        };
-
-        $response = $this->taskRepository->getTasksQuery($filter);
-
-        return Arr::pluck($response, 'id');
+        return $this->taskRepository->getAvailableTasksIds($auth);
     }
 }

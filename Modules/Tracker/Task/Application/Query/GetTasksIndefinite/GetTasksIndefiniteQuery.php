@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Modules\Tracker\Task\Application\Query\GetTasksUnassembled;
+namespace Modules\Tracker\Task\Application\Query\GetTasksIndefinite;
 
 use Modules\Shared\Application\Query\QueryInterface;
 
-class GetTasksUnassembledQuery implements QueryInterface
+class GetTasksIndefiniteQuery implements QueryInterface
 {
     public static function make(): static
     {

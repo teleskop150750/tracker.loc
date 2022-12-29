@@ -6,8 +6,10 @@ namespace Modules\Tracker\Task\Infrastructure\Repository;
 
 use App\Support\Arr;
 use Doctrine\ORM\AbstractQuery;
+use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\Query\Expr\Join;
+use Modules\Auth\User\Domain\Entity\User;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;
 use Modules\Shared\Infrastructure\Doctrine\AbstractDoctrineRepository;
 use Modules\Tracker\Task\Domain\Entity\Task\Task;
@@ -31,6 +33,7 @@ class TaskRepository extends AbstractDoctrineRepository implements TaskRepositor
 
     /**
      * {@inheritdoc}
+     * @throws NonUniqueResultException
      */
     public function getTask(callable $filter): Task
     {
@@ -40,7 +43,7 @@ class TaskRepository extends AbstractDoctrineRepository implements TaskRepositor
         $qb = $qb->select('t', 'a', 'e', 'f')
             ->from(Task::class, 't')
             ->join('t.author', 'a')
-            ->join('t.folders', 'f')
+            ->leftJoin('t.folders', 'f')
             ->leftJoin('t.executors', 'e');
 
         $qb = $filter($qb);
@@ -66,11 +69,9 @@ class TaskRepository extends AbstractDoctrineRepository implements TaskRepositor
             't',
             'PARTIAL a.{uuid,createdAt,updatedAt,email.value,emailVerifiedAt.value,fullName.firstName,fullName.lastName,fullName.patronymic,avatar.value,phone.value,department.value,post.value}',
             'PARTIAL e.{uuid,createdAt,updatedAt,email.value,emailVerifiedAt.value,fullName.firstName,fullName.lastName,fullName.patronymic,avatar.value,phone.value,department.value,post.value}',
-            'f',
         )
             ->from(Task::class, 't')
             ->join('t.author', 'a')
-            ->join('t.folders', 'f')
             ->leftJoin('t.executors', 'e');
 
         $qb = $filter($qb);
@@ -125,6 +126,37 @@ class TaskRepository extends AbstractDoctrineRepository implements TaskRepositor
 
         return $this->formatArray($response);
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getAvailableTasksIds(User $user): array
+    {
+
+        $em = $this->entityManager();
+        $qb = $em->createQueryBuilder();
+        $qb->select('PARTIAL t.{uuid}')
+            ->distinct()
+            ->from(Task::class, 't')
+            ->join('t.author', 'a')
+            ->leftJoin('t.executors', 'e')
+            ->andWhere($qb->expr()->orX(
+            $qb->expr()->eq('a.uuid', ':userId'),
+            $qb->expr()->eq('e.uuid', ':userId')
+        ))
+            ->setParameter('userId', $user->getUuid()->getId());
+
+        $response = $qb->getQuery()->getArrayResult();
+
+        $response =  $this->formatArray($response);
+
+        return  Arr::unique(Arr::pluck($response, 'id'));
+    }
+
+//    ======================================================
+//    ======================================================
+//    ======================================================
+//    ======================================================
 
     public function findOrNull(TaskUuid $id): ?Task
     {
