@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Auth\User\Domain\Repository;
 
+use Doctrine\ORM\QueryBuilder;
 use Modules\Auth\User\Domain\Entity\User;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserEmail;
 use Modules\Auth\User\Domain\Entity\ValueObject\UserUuid;
@@ -25,6 +26,14 @@ interface UserRepositoryInterface
      * @return User[]
      */
     public function all(): array;
+
+    /**
+     * @param callable(QueryBuilder): QueryBuilder $filter
+     *
+     * @return array<int, mixed>
+     */
+    public function getUsersQuery(callable $filter): array;
+//    ===============
 
     /**
      * @param array<string, mixed>       $criteria

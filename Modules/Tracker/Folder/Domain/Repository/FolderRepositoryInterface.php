@@ -53,6 +53,11 @@ interface FolderRepositoryInterface
     /**
      * @param callable(QueryBuilder): QueryBuilder $filter
      */
+    public function getFoldersUsers(callable $filter): array;
+
+    /**
+     * @param callable(QueryBuilder): QueryBuilder $filter
+     */
     public function getClosestParentFolderQuery(callable $filter): ?string;
 
     /**

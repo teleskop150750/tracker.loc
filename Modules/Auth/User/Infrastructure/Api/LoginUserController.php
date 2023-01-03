@@ -14,32 +14,21 @@ class LoginUserController extends ApiController
 {
     public function __invoke(Request $request, EntityManagerInterface $em): JsonResponse
     {
-        $conn = $em->getConnection();
-        $conn->beginTransaction();
+        $data = $this->validate(
+            $request->all(),
+            [
+                'email' => ['required', 'email'],
+                'password' => ['required'],
+            ]
+        );
 
-        try {
-            $data = $this->validate(
-                $request->all(),
-                [
-                    'email' => ['required', 'email'],
-                    'password' => ['required'],
-                ]
-            );
+        $user = $this->ask(LoginUserQuery::createFromArray($data));
 
-            $user = $this->ask(LoginUserQuery::createFromArray($data));
-
-            $conn->commit();
-
-            return response()->json([
-                'code' => 200,
-                'status' => 'success',
-                'title' => 'Успешный выход',
-                'data' => $user->toArray(),
-            ]);
-        } catch (\Exception $exception) {
-            $conn->rollBack();
-
-            throw $exception;
-        }
+        return response()->json([
+            'code' => 200,
+            'status' => 'success',
+            'title' => 'Успешный выход',
+            'data' => $user->toArray(),
+        ]);
     }
 }

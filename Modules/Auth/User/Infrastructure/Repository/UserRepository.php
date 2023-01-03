@@ -51,6 +51,28 @@ class UserRepository extends AbstractDoctrineRepository implements UserRepositor
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function getUsersQuery(callable $filter): array
+    {
+        $em = $this->entityManager();
+        $qb = $em->createQueryBuilder();
+        $qb = $qb->select(
+            'PARTIAL u.{uuid, createdAt, updatedAt, email.value, emailVerifiedAt.value, fullName.firstName, fullName.lastName, fullName.patronymic, avatar.value, phone.value, department.value, post.value}',
+        )
+            ->from(User::class, 'u');
+
+        $qb = $filter($qb);
+        $response = $qb->getQuery()->getArrayResult();
+
+        return $this->formatArray($response);
+    }
+
+//    ===================
+//    ===================
+//    ===================
+
+    /**
      * @param array<string, mixed>       $criteria
      * @param null|array<string, string> $orderBy
      * @param null|int                   $limit

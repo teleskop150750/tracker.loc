@@ -235,7 +235,6 @@ class TasksController extends ApiController
                 'status' => 'success',
                 'title' => 'Задача удалена',
             ]);
-
         } catch (\Exception $exception) {
             $conn->rollBack();
 

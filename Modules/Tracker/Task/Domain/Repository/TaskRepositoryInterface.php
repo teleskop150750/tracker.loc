@@ -48,6 +48,13 @@ interface TaskRepositoryInterface
     public function getTasksQuery(callable $filter): array;
 
     /**
+     * @param callable(QueryBuilder): QueryBuilder $filter
+     *
+     * @return array<int, mixed>
+     */
+    public function getTasksUsers(callable $filter): array;
+
+    /**
      * @return string[]
      */
     public function getAvailableTasksIds(User $user): array;

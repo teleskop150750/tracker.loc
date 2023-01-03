@@ -89,9 +89,10 @@ class GetTasksIndefiniteQueryHandler implements QueryHandlerInterface
         };
 
         $response = $this->taskRepository->getTasksQuery($filter);
-        $response = Arr::where($response, static function(array $task) use ($foldersIds) {
-           $ids = Arr::pluck($task['folders'], 'id');
-            return count(array_intersect($ids, $foldersIds)) === 0;
+        $response = Arr::where($response, static function (array $task) use ($foldersIds) {
+            $ids = Arr::pluck($task['folders'], 'id');
+
+            return 0 === \count(array_intersect($ids, $foldersIds));
         });
 
         return Arr::unique(Arr::pluck($response, 'id'));

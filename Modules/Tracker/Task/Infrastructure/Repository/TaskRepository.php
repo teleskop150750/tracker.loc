@@ -33,6 +33,7 @@ class TaskRepository extends AbstractDoctrineRepository implements TaskRepositor
 
     /**
      * {@inheritdoc}
+     *
      * @throws NonUniqueResultException
      */
     public function getTask(callable $filter): Task
@@ -130,9 +131,38 @@ class TaskRepository extends AbstractDoctrineRepository implements TaskRepositor
     /**
      * {@inheritdoc}
      */
+    public function getTasksUsers(callable $filter): array
+    {
+        $em = $this->entityManager();
+        $qb = $em->createQueryBuilder();
+        $qb = $qb->select(
+            'PARTIAL t.{uuid}',
+            'PARTIAL a.{uuid, createdAt, updatedAt, email.value, emailVerifiedAt.value, fullName.firstName, fullName.lastName, fullName.patronymic, avatar.value, phone.value, department.value, post.value}',
+            'PARTIAL e.{uuid, createdAt, updatedAt, email.value, emailVerifiedAt.value, fullName.firstName, fullName.lastName, fullName.patronymic, avatar.value, phone.value, department.value, post.value}',
+        )
+            ->from(Task::class, 't')
+            ->join('t.author', 'a');
+
+        $qb = $filter($qb);
+        $response = $qb->getQuery()->getArrayResult();
+        $users = [];
+
+        foreach ($response as $item) {
+            $new = [$item['author'], ...$item['executors']];
+            $users = [...$users, ...$new];
+        }
+
+        $users = $this->formatArray($users);
+        $users = Arr::values(Arr::keyBy($users, 'id'));
+
+        return $this->formatArray($users);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getAvailableTasksIds(User $user): array
     {
-
         $em = $this->entityManager();
         $qb = $em->createQueryBuilder();
         $qb->select('PARTIAL t.{uuid}')
@@ -141,16 +171,16 @@ class TaskRepository extends AbstractDoctrineRepository implements TaskRepositor
             ->join('t.author', 'a')
             ->leftJoin('t.executors', 'e')
             ->andWhere($qb->expr()->orX(
-            $qb->expr()->eq('a.uuid', ':userId'),
-            $qb->expr()->eq('e.uuid', ':userId')
-        ))
+                $qb->expr()->eq('a.uuid', ':userId'),
+                $qb->expr()->eq('e.uuid', ':userId')
+            ))
             ->setParameter('userId', $user->getUuid()->getId());
 
         $response = $qb->getQuery()->getArrayResult();
 
-        $response =  $this->formatArray($response);
+        $response = $this->formatArray($response);
 
-        return  Arr::unique(Arr::pluck($response, 'id'));
+        return Arr::unique(Arr::pluck($response, 'id'));
     }
 
 //    ======================================================

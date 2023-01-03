@@ -144,6 +144,39 @@ class FolderRepository extends AbstractDoctrineRepository implements FolderRepos
     /**
      * {@inheritdoc}
      */
+    public function getFoldersUsers(callable $filter): array
+    {
+        $em = $this->entityManager();
+        $qb = $em->createQueryBuilder();
+
+        $qb = $qb
+            ->select(
+                'PARTIAL f.{id}',
+                'PARTIAL a.{uuid,email.value,fullName.firstName,fullName.lastName,fullName.patronymic,avatar.value,phone.value,department.value,post.value}',
+                'PARTIAL su.{uuid,email.value,fullName.firstName,fullName.lastName,fullName.patronymic,avatar.value,phone.value,department.value,post.value}',
+            )
+            ->from(Folder::class, 'f')
+            ->join('f.author', 'a');
+
+        $qb = $filter($qb);
+
+        $response = $qb->getQuery()->getArrayResult();
+        $users = [];
+
+        foreach ($response as $item) {
+            $new = [$item['author'], ...$item['sharedUsers']];
+            $users = [...$users, ...$new];
+        }
+
+        $users = $this->formatArray($users);
+        $users = Arr::values(Arr::keyBy($users, 'id'));
+
+        return $this->formatArray($users);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getClosestParentFolderQuery(callable $filter): ?string
     {
         $em = $this->entityManager();

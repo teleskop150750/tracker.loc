@@ -83,7 +83,6 @@ class FoldersController extends ApiController
         $conn = $em->getConnection();
         $conn->beginTransaction();
 
-
         try {
             $folderData = $this->validate(
                 [...$request->all(), 'id' => $id],
