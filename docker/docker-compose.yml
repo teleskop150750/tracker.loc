@@ -13,8 +13,6 @@ volumes:
     driver: ${VOLUMES_DRIVER}
   percona:
     driver: ${VOLUMES_DRIVER}
-  mssql:
-    driver: ${VOLUMES_DRIVER}
   postgres:
     driver: ${VOLUMES_DRIVER}
   memcached:
@@ -40,8 +38,6 @@ volumes:
   caddy:
     driver: ${VOLUMES_DRIVER}
   meilisearch:
-    driver: ${VOLUMES_DRIVER}
-  elasticsearch:
     driver: ${VOLUMES_DRIVER}
   mosquitto:
     driver: ${VOLUMES_DRIVER}
@@ -188,14 +184,14 @@ services:
         - ./php-worker/supervisord.d:/etc/supervisord.d
       extra_hosts:
         - "dockerhost:${DOCKER_HOST_IP}"
-      ports:
-        - "${WORKSPACE_SSH_PORT}:22"
-        - "${WORKSPACE_BROWSERSYNC_HOST_PORT}:3000"
-        - "${WORKSPACE_BROWSERSYNC_UI_HOST_PORT}:3001"
-        - "${WORKSPACE_VUE_CLI_SERVE_HOST_PORT}:8080"
-        - "${WORKSPACE_VUE_CLI_UI_HOST_PORT}:8000"
-        - "${WORKSPACE_ANGULAR_CLI_SERVE_HOST_PORT}:4200"
-        - "${WORKSPACE_VITE_PORT}:5173"
+      # ports:
+      #   - "${WORKSPACE_SSH_PORT}:22"
+      #   - "${WORKSPACE_BROWSERSYNC_HOST_PORT}:3000"
+      #   - "${WORKSPACE_BROWSERSYNC_UI_HOST_PORT}:3001"
+      #   - "${WORKSPACE_VUE_CLI_SERVE_HOST_PORT}:8080"
+      #   - "${WORKSPACE_VUE_CLI_UI_HOST_PORT}:8000"
+      #   - "${WORKSPACE_ANGULAR_CLI_SERVE_HOST_PORT}:4200"
+      #   - "${WORKSPACE_VITE_PORT}:5173"
       tty: true
       environment:
         - PHP_IDE_CONFIG=${PHP_IDE_CONFIG}
@@ -556,8 +552,6 @@ services:
       volumes:
         - ${DATA_PATH_HOST}/mysql:/var/lib/mysql
         - ${MYSQL_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
-      ports:
-        - "${MYSQL_PORT}:3306"
       networks:
         - backend
 
@@ -575,45 +569,6 @@ services:
         - ${PERCONA_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
       ports:
         - "${PERCONA_PORT}:3306"
-      networks:
-        - backend
-
-### MSSQL ################################################
-    mssql:
-      build:
-        context: ./mssql
-      environment:
-        - MSSQL_PID=Express
-        - MSSQL_DATABASE=${MSSQL_DATABASE}
-        - SA_PASSWORD=${MSSQL_PASSWORD}
-        - ACCEPT_EULA=Y
-      volumes:
-        - mssql:/var/opt/mssql
-      ports:
-        - "${MSSQL_PORT}:1433"
-      networks:
-        - backend
-
-### MariaDB ##############################################
-    mariadb:
-      build:
-        context: ./mariadb
-        args:
-          - http_proxy
-          - https_proxy
-          - no_proxy
-          - MARIADB_VERSION=${MARIADB_VERSION}
-      volumes:
-        - ${DATA_PATH_HOST}/mariadb:/var/lib/mysql
-        - ${MARIADB_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
-      ports:
-        - "${MARIADB_PORT}:3306"
-      environment:
-        - TZ=${WORKSPACE_TIMEZONE}
-        - MYSQL_DATABASE=${MARIADB_DATABASE}
-        - MYSQL_USER=${MARIADB_USER}
-        - MYSQL_PASSWORD=${MARIADB_PASSWORD}
-        - MYSQL_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
       networks:
         - backend
 
@@ -1034,84 +989,6 @@ services:
         - frontend
         - backend
 
-### ElasticSearch ########################################
-    elasticsearch:
-      build:
-        context: ./elasticsearch
-        args:
-          - ELK_VERSION=${ELK_VERSION}
-      volumes:
-        - elasticsearch:/usr/share/elasticsearch/data
-      environment:
-        - cluster.name=laradock-cluster
-        - node.name=laradock-node
-        - bootstrap.memory_lock=true
-        - xpack.security.enabled=false
-        - xpack.security.transport.ssl.enabled=false
-        - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-        - cluster.initial_master_nodes=laradock-node
-      ulimits:
-        memlock:
-          soft: -1
-          hard: -1
-        nofile:
-          soft: 65536
-          hard: 65536
-      ports:
-        - "${ELASTICSEARCH_HOST_HTTP_PORT}:9200"
-        - "${ELASTICSEARCH_HOST_TRANSPORT_PORT}:9300"
-      depends_on:
-        - php-fpm
-      networks:
-        - frontend
-        - backend
-
-### Logstash ##############################################
-    logstash:
-      build:
-        context: ./logstash
-        args:
-          - ELK_VERSION=${ELK_VERSION}
-      volumes:
-        - './logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml'
-        - './logstash/pipeline:/usr/share/logstash/pipeline'
-      ports:
-        - '5001:5001'
-      environment:
-        LS_JAVA_OPTS: '-Xmx1g -Xms1g'
-      env_file:
-        - .env
-      networks:
-        - frontend
-        - backend
-      depends_on:
-        - elasticsearch
-
-### Kibana ##############################################
-    kibana:
-      build:
-        context: ./kibana
-        args:
-          - ELK_VERSION=${ELK_VERSION}
-      ports:
-        - "${KIBANA_HTTP_PORT}:5601"
-      depends_on:
-        - elasticsearch
-      networks:
-        - frontend
-        - backend
-
-### Dejavu ##############################################
-    dejavu:
-      build:
-        context: ./dejavu
-      ports:
-        - "${DEJAVU_HTTP_PORT}:1358"
-      depends_on:
-        - elasticsearch
-      networks:
-        - frontend
-        - backend
 
 ### Certbot #########################################
     certbot:
@@ -1245,35 +1122,6 @@ services:
       networks:
         - backend
 
-### Graylog #######################################
-    graylog:
-      build: ./graylog
-      environment:
-        - GRAYLOG_PASSWORD_SECRET=${GRAYLOG_PASSWORD}
-        - GRAYLOG_ROOT_PASSWORD_SHA2=${GRAYLOG_SHA256_PASSWORD}
-        - GRAYLOG_HTTP_EXTERNAL_URI=http://127.0.0.1:${GRAYLOG_PORT}/
-      links:
-        - mongo
-        - elasticsearch
-      depends_on:
-        - mongo
-        - elasticsearch
-      ports:
-        # Graylog web interface and REST API
-        - ${GRAYLOG_PORT}:9000
-        # Syslog TCP
-        - ${GRAYLOG_SYSLOG_TCP_PORT}:514
-        # Syslog UDP
-        - ${GRAYLOG_SYSLOG_UDP_PORT}:514/udp
-        # GELF TCP
-        - ${GRAYLOG_GELF_TCP_PORT}:12201
-        # GELF UDP
-        - ${GRAYLOG_GELF_UDP_PORT}:12201/udp
-      user: graylog
-      volumes:
-        - ${DATA_PATH_HOST}/graylog:/usr/share/graylog/data
-      networks:
-        - backend
 
 ### Laravel Echo Server #######################################
     laravel-echo-server:
