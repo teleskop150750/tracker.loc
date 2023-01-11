@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Modules\Tracker\Task\Infrastructure\Api;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Illuminate\Http\Response;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Modules\Shared\Infrastructure\Lumen\ApiController;
 use Modules\Shared\Infrastructure\Lumen\ValidationExceptionNormalizer;
@@ -14,50 +14,45 @@ use Modules\Tracker\Task\Application\Command\TaskAddFile\TaskAddFileCommand;
 use Modules\Tracker\Task\Application\Command\TaskRemoveFile\TaskRemoveFileCommand;
 use Modules\Tracker\Task\Application\Query\DownloadFile\DownloadFileQuery;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TaskFileController extends ApiController
 {
-    public function add(Request $request, EntityManagerInterface $em, string $taskId): JsonResponse
+    public function create(Request $request, EntityManagerInterface $em, string $taskId): Response
     {
         $conn = $em->getConnection();
         $conn->beginTransaction();
 
         try {
-            $this->validate(
-                $request->all(),
+            $data = $this->validate(
+                [...$request->all(), 'taskId' => $taskId],
                 [
-                    'file' => ['required'],
+                    'taskId' => ['required', 'uuid'],
+                    'file' => ['required', 'file'],
                 ]
             );
 
-            $fileId = (new \Modules\Tracker\Task\Domain\Entity\File\ValueObject\FileUuid())->generateRandom()->getId();
-            $data = [
-                'file' => $request->file('file'),
-                'taskId' => $taskId,
-                'fileId' => $fileId,
-            ];
+            // $file = $request->file('file');
+            // $fileName = $file->getClientOriginalName();
+            // $response = Http::withToken(env('FILE_STORAGE_TOKEN'))
+            //     ->attach('attachment', file_get_contents($file->path()), $fileName)
+            //     ->post(env('FILE_STORAGE_API') . '/api/v1/files', $request->all());
 
-            $this->dispatch(TaskAddFileCommand::createFromArray($data));
+            // if ($response->status() === 201) {
+            //     $fileId = $request->json('data.id');
+            //     $this->dispatch(TaskAddFileCommand::createFromArray(['id' => $fileId]));
+            //     $conn->commit();
+            // }
+
+            /** @var \Modules\Tracker\Task\Application\Command\TaskAddFile\TaskAddFileResponse $taskAddFileResponse */
+            $taskAddFileResponse = $this->dispatch(TaskAddFileCommand::createFromArray($data));
             $conn->commit();
+            $resposnse = $taskAddFileResponse->getReponse();
 
-            return new JsonResponse([
-                'success' => true,
-                'data' => [
-                    'id' => $fileId,
-                ],
-            ]);
-        } catch (ValidationException $exception) {
-            $conn->rollBack();
-
-            return ValidationExceptionNormalizer::make($exception)->getResponse();
+            return response($resposnse->body(), $resposnse->status(), $resposnse->headers());
         } catch (\Exception $exception) {
             $conn->rollBack();
 
-            return new JsonResponse([
-                'success' => false,
-                'message' => $exception->getMessage(),
-            ]);
+            throw $exception;
         }
     }
 
@@ -89,21 +84,12 @@ class TaskFileController extends ApiController
         }
     }
 
-    public function download(string $fileId): StreamedResponse|JsonResponse
+    public function download(string $fileId): Response
     {
-        try {
-            $data = ['fileId' => $fileId];
-            $file = $this->ask(DownloadFileQuery::createFromArray($data));
-            $fileMap = $file->toArray();
+        $data = ['fileId' => $fileId];
+        $file = $this->ask(DownloadFileQuery::createFromArray($data));
+        $arr = $file->toArray();
 
-            return Storage::download($fileMap['path']);
-        } catch (ValidationException $exception) {
-            return ValidationExceptionNormalizer::make($exception)->getResponse();
-        } catch (\Exception $exception) {
-            return new JsonResponse([
-                'success' => false,
-                'message' => $exception->getMessage(),
-            ]);
-        }
+        return response($arr['body'], $arr['status'], $arr['headers']);
     }
 }

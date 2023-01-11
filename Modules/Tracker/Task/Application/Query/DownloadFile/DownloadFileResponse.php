@@ -4,35 +4,27 @@ declare(strict_types=1);
 
 namespace Modules\Tracker\Task\Application\Query\DownloadFile;
 
+use Illuminate\Http\Client\Response;
 use Modules\Shared\Application\Query\QueryResponseInterface;
 
 class DownloadFileResponse implements QueryResponseInterface
 {
     public function __construct(
-        private readonly string $uuid,
-        private readonly string $path,
-        private readonly string $originName,
+        private readonly Response $response,
     ) {
     }
 
-    public static function fromArray(array $file): self
+    public static function fromResponse(Response $response): self
     {
-        return new self(
-            $file['uuid'],
-            $file['path'],
-            $file['originName'],
-        );
+        return new self($response);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     public function toArray(): array
     {
         return [
-            'id' => $this->uuid,
-            'path' => $this->path,
-            'originName' => $this->originName,
+            'body' => $this->response->body(),
+            'status' => $this->response->status(),
+            'headers' => $this->response->headers(),
         ];
     }
 }

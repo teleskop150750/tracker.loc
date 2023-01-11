@@ -20,5 +20,13 @@ $router->group(['middleware' => 'auth'], function () use ($router): void {
     $router->put('tasks/{id}', 'Modules\Tracker\Task\Infrastructure\Api\TasksController@update');
 
     $router->delete('tasks/{id}', 'Modules\Tracker\Task\Infrastructure\Api\TasksController@delete');
-//    $router->get('available-tasks-for-me', 'Modules\Tracker\Task\Infrastructure\Api\GetAvailableTasksForMeController@__invoke');
+
+    $router->post('tasks/{taskId}/files', 'Modules\Tracker\Task\Infrastructure\Api\TaskFileController@create');
+    $router->delete('tasks/{taskId}/files/{fileId}', 'Modules\Tracker\Task\Infrastructure\Api\TaskFileController@delete');
 });
+
+$router->get('tasks/{taskId}/files/{fileId}/download', [
+    'middleware' => ['signed'],
+    'as' => 'tasks.files.download',
+    'uses' => 'Modules\Tracker\Task\Infrastructure\Api\TaskFileController@download',
+]);

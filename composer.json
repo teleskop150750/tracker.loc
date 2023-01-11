@@ -12,6 +12,7 @@
         "php": "^8.1",
         "fruitcake/laravel-cors": "^3.0",
         "gedmo/doctrine-extensions": "^v3.9.0",
+        "guzzlehttp/guzzle": "^7.5",
         "illuminate/mail": "^9.40",
         "lambdish/phunctional": "^2.1",
         "laravel-doctrine/extensions": "^1.5",

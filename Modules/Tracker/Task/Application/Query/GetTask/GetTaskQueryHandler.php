@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Modules\Tracker\Task\Application\Query\GetTask;
 
+use App\Services\UrlGenerator;
 use App\Support\Arr;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
+use Illuminate\Support\Carbon;
 use Modules\Shared\Application\Query\QueryHandlerInterface;
 use Modules\Shared\Domain\Security\UserFetcherInterface;
 use Modules\Tracker\Folder\Domain\Repository\FolderRepositoryInterface;
@@ -14,10 +16,13 @@ use Modules\Tracker\Task\Domain\Entity\Task\ValueObject\TaskStatus;
 use Modules\Tracker\Task\Domain\Repository\Exceptions\TaskNotFoundException;
 use Modules\Tracker\Task\Domain\Repository\TaskRelationshipRepositoryInterface;
 use Modules\Tracker\Task\Domain\Repository\TaskRepositoryInterface;
+use Modules\Tracker\Task\Domain\Services\FileStorageServivce;
 
 class GetTaskQueryHandler implements QueryHandlerInterface
 {
     public function __construct(
+        private readonly UrlGenerator $urlGenerator,
+        private readonly FileStorageServivce $fileStorageServivce,
         private readonly FolderRepositoryInterface $folderRepository,
         private readonly TaskRepositoryInterface $taskRepository,
         private readonly TaskRelationshipRepositoryInterface $taskRelationshipRepository,
@@ -31,6 +36,7 @@ class GetTaskQueryHandler implements QueryHandlerInterface
     public function __invoke(GetTaskQuery $command): GetTaskResponse
     {
         $task = $this->getTask($command);
+        $task = $this->getTaskFiles($task);
         $allRelations = $this->getAllRelations($command);
         $CAN_BEGIN_TASK = $this->canBeginTask($allRelations);
         $RIGHTS = [
@@ -60,8 +66,10 @@ class GetTaskQueryHandler implements QueryHandlerInterface
                     'PARTIAL tir.{uuid}',
                     'PARTIAL l.{uuid,createdAt,updatedAt,startDate.value,endDate.value,status.value,importance.value,description.value}',
                     'f',
+                    'PARTIAL fl.{uuid}',
                 )
                 ->leftJoin('t.taskRelationships', 'tr')
+                ->leftJoin('t.files', 'fl')
                 ->leftJoin('tr.right', 'r', Join::WITH, $qb->expr()->in('r.uuid', ':tasksIds'))
                 ->leftJoin('t.inverseTaskRelationships', 'tir')
                 ->leftJoin('tir.left', 'l', Join::WITH, $qb->expr()->in('l.uuid', ':tasksIds'))
@@ -82,6 +90,25 @@ class GetTaskQueryHandler implements QueryHandlerInterface
         }
 
         return $response;
+    }
+
+    private function getTaskFiles(array $task) 
+    {
+        $files = $this->fileStorageServivce->index($task['files']);
+
+        $files = Arr::map($files, fn($file) => [
+            ...$file,
+            'link' => $this->urlGenerator->signedRoute(
+                'tasks.files.download',
+                ['taskId' => $task['id'], 'fileId' => $file['id']],
+                Carbon::now()->addMinutes(15),
+                false,
+            )
+        ]);
+
+        $task['files'] = $files;
+
+        return $task;
     }
 
     /**

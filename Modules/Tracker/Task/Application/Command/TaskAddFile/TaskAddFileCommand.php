@@ -12,7 +12,6 @@ class TaskAddFileCommand implements CommandInterface
     public function __construct(
         public readonly string $taskId,
         public readonly UploadedFile $file,
-        public readonly string $fileId,
     ) {
     }
 
@@ -21,6 +20,6 @@ class TaskAddFileCommand implements CommandInterface
      */
     public static function createFromArray(array $data): static
     {
-        return new static($data['taskId'], $data['file'], $data['fileId']);
+        return new static($data['taskId'], $data['file']);
     }
 }
